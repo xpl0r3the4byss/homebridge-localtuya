@@ -26,20 +26,22 @@
               "title": "Device ID",
               "type": "string",
               "required": true,
-              "description": "The device ID from Tuya"
+              "description": "The device ID (will be auto-populated when discovered)",
+              "readonly": true
             },
             "key": {
               "title": "Local Key",
               "type": "string",
               "required": true,
-              "description": "The local key for the device"
+              "description": "The local key for the device (required for control)"
             },
             "ip": {
               "title": "IP Address",
               "type": "string",
-              "required": true,
+              "required": false,
               "format": "ipv4",
-              "description": "The local IP address of the device"
+              "description": "The local IP address (will be auto-discovered)",
+              "readonly": true
             },
             "type": {
               "title": "Device Type",
@@ -56,7 +58,43 @@
             }
           }
         }
+      },
+      "discoveryTimeout": {
+        "title": "Discovery Timeout",
+        "type": "integer",
+        "required": false,
+        "default": 10,
+        "description": "Timeout in seconds for device discovery"
       }
     }
-  }
+  },
+  "layout": [
+    {
+      "key": "name"
+    },
+    {
+      "type": "help",
+      "helpvalue": "<p class='notice notice-info'>Devices will be automatically discovered on your network. Simply enter the local key for each device you want to control.</p>"
+    },
+    {
+      "key": "devices",
+      "type": "array",
+      "title": "Discovered Devices",
+      "items": [
+        {
+          "type": "section",
+          "items": [
+            "devices[].name",
+            "devices[].id",
+            "devices[].key",
+            "devices[].ip",
+            "devices[].type"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "discoveryTimeout"
+    }
+  ]
 }

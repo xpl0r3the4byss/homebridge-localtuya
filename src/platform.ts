@@ -2,7 +2,15 @@ import type { API, Characteristic, DynamicPlatformPlugin, Logging, PlatformAcces
 
 import { TuyaAccessory } from './platformAccessory.js';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
-// We don't use TuyAPI directly in this file, it's used in platformAccessory.ts
+import TuyAPI from 'tuyapi';
+
+interface DiscoveredDevice {
+  id: string;
+  ip: string;
+  name?: string;
+  key?: string;
+  type?: string;
+}
 
 // This is only required when using Custom Services and Characteristics not support by HomeKit
 import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes';
@@ -67,30 +75,70 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
    * Accessories must only be registered once, previously created accessories
    * must not be registered again to prevent "duplicate UUID" errors.
    */
-  async discoverDevices() {
-    // Get devices from config
-    const configDevices = this.config.devices || [];
+  private async findTuyaDevices(): Promise<DiscoveredDevice[]> {
+    const timeout = (this.config.discoveryTimeout || 10) * 1000; // Convert to milliseconds
+    const discoveredDevices: DiscoveredDevice[] = [];
     
-    // Read devices.json if it exists
     try {
-      // Using require since this is a runtime configuration file
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const devicesJson = require('../../devices.json');
-      if (Array.isArray(devicesJson)) {
-        for (const device of devicesJson) {
-          if (!configDevices.find((d: { id: string }) => d.id === device.id)) {
-            configDevices.push({
-              name: device.name,
-              id: device.id,
-              key: device.key,
-              ip: device.ip,
-              type: 'fanLight', // Default type for our fan/light combo
-            });
-          }
+      // Create a dummy device for scanning
+      const scanner = new TuyAPI({
+        id: '00000000000000000000',
+        key: '0000000000000000',
+      });
+
+      // Listen for device discoveries
+      scanner.on('device', (device: { id: string; ip: string }) => {
+        this.log.debug('Found device:', device);
+        discoveredDevices.push({
+          id: device.id,
+          ip: device.ip,
+          name: `Tuya Device ${device.id.substring(0, 8)}`,
+          type: 'fanLight', // Default type
+        });
+      });
+
+      // Start scanning
+      await scanner.find({ timeout });
+      
+      return discoveredDevices;
+    } catch (error) {
+      this.log.error('Error during device discovery:', error);
+      return [];
+    }
+  }
+
+  async discoverDevices() {
+    // Get devices from config and discover new ones
+    const configDevices = this.config.devices || [];
+    const discoveredDevices = await this.findTuyaDevices();
+    
+    // Merge discovered devices with config devices
+    for (const device of discoveredDevices) {
+      const existingDevice = configDevices.find(d => d.id === device.id);
+      if (existingDevice) {
+        // Update IP of existing device
+        existingDevice.ip = device.ip;
+      } else {
+        // Add new device to config if we have its key
+        if (device.key) {
+          configDevices.push({
+            name: device.name || `Tuya Device ${device.id.substring(0, 8)}`,
+            id: device.id,
+            key: device.key,
+            ip: device.ip,
+            type: 'fanLight',
+          });
+        } else {
+          this.log.info('Found new device but missing key:', device.id);
         }
       }
-    } catch (error) {
-      this.log.debug('No devices.json found or error reading it:', error);
+    }
+
+    // Update platform config with discovered devices
+    this.api.updatePlatformConfig(PLUGIN_NAME, {
+      ...this.config,
+      devices: configDevices,
+    });
     }
 
     // loop over the discovered devices and register each one if it has not already been registered
