@@ -37,6 +37,10 @@ class LocalTuyaPlatform {
             // run the method to discover / register your devices as accessories
             this.discoverDevices();
         });
+        // Handle shutdown
+        process.on('SIGTERM', () => {
+            this.shutdown();
+        });
     }
     /**
      * This function is invoked when homebridge restores cached accessories from disk at startup.
@@ -126,7 +130,7 @@ class LocalTuyaPlatform {
                 // this.api.updatePlatformAccessories([existingAccessory]);
                 // create the accessory handler for the restored accessory
                 // this is imported from `platformAccessory.ts`
-                new platformAccessory_1.TuyaAccessory(this, existingAccessory);
+                existingAccessory.context.tuyaAccessory = new platformAccessory_1.TuyaAccessory(this, existingAccessory);
                 // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, e.g.:
                 // remove platform accessories when no longer present
                 // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
@@ -142,7 +146,7 @@ class LocalTuyaPlatform {
                 accessory.context.device = device;
                 // create the accessory handler for the newly create accessory
                 // this is imported from `platformAccessory.ts`
-                new platformAccessory_1.TuyaAccessory(this, accessory);
+                accessory.context.tuyaAccessory = new platformAccessory_1.TuyaAccessory(this, accessory);
                 // link the accessory to your platform
                 this.api.registerPlatformAccessories(settings_1.PLUGIN_NAME, settings_1.PLATFORM_NAME, [accessory]);
             }
@@ -156,6 +160,13 @@ class LocalTuyaPlatform {
             if (!this.discoveredCacheUUIDs.includes(uuid)) {
                 this.log.info('Removing existing accessory from cache:', accessory.displayName);
                 this.api.unregisterPlatformAccessories(settings_1.PLUGIN_NAME, settings_1.PLATFORM_NAME, [accessory]);
+            }
+        }
+    }
+    shutdown() {
+        for (const accessory of this.accessories.values()) {
+            if (accessory.context.tuyaAccessory) {
+                accessory.context.tuyaAccessory.destroy();
             }
         }
     }

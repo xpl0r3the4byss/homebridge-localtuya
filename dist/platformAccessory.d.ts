@@ -6,7 +6,17 @@ export declare class TuyaAccessory {
     private fanService;
     private lightService;
     private device;
+    private isConnected;
+    private connectionRetries;
+    private maxRetries;
+    private pollingInterval?;
     constructor(platform: LocalTuyaPlatform, accessory: PlatformAccessory);
+    private handleError;
+    private startPolling;
+    private updateCharacteristics;
+    private connect;
+    private scheduleReconnect;
+    destroy(): void;
     setFanActive(value: CharacteristicValue): Promise<void>;
     getFanActive(): Promise<CharacteristicValue>;
     setFanSpeed(value: CharacteristicValue): Promise<void>;

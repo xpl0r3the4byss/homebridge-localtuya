@@ -27,4 +27,5 @@ export declare class LocalTuyaPlatform implements DynamicPlatformPlugin {
      */
     private findTuyaDevices;
     discoverDevices(): Promise<void>;
+    private shutdown;
 }
