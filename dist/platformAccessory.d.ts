@@ -1,4 +1,4 @@
-import type { CharacteristicValue, PlatformAccessory } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory } from 'homebridge';
 import { LocalTuyaPlatform } from './platform';
 export declare class TuyaAccessory {
     private readonly platform;

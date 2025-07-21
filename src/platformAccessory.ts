@@ -1,4 +1,4 @@
-import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { LocalTuyaPlatform } from './platform';
 import TuyAPI from 'tuyapi';
 
@@ -61,7 +61,7 @@ export class TuyaAccessory {
   // Fan control methods
   async setFanActive(value: CharacteristicValue) {
     try {
-      await this.device.set({ dps: 51, set: value === 1 }); // Toggle fan
+      await this.device.set({ dps: 51, set: value === 1 });
       this.platform.log.debug('Set Fan Active ->', value);
     } catch (error) {
       this.platform.log.error('Error setting fan state:', error);
@@ -71,7 +71,6 @@ export class TuyaAccessory {
 
   async getFanActive(): Promise<CharacteristicValue> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const status = await this.device.get({ schema: true }) as { dps: Record<string, any> };
       const isActive = status.dps['51'] === true ? 1 : 0;
       this.platform.log.debug('Get Fan Active ->', isActive);
@@ -86,7 +85,7 @@ export class TuyaAccessory {
     try {
       // Convert 0-100 to 1-6 range
       const speed = Math.round((value as number / 100) * 5) + 1;
-      await this.device.set({ dps: 53, set: speed }); // Set fan speed
+      await this.device.set({ dps: 53, set: speed });
       this.platform.log.debug('Set Fan Speed ->', value, 'Tuya Speed ->', speed);
     } catch (error) {
       this.platform.log.error('Error setting fan speed:', error);
@@ -96,7 +95,6 @@ export class TuyaAccessory {
 
   async getFanSpeed(): Promise<CharacteristicValue> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const status = await this.device.get({ schema: true }) as { dps: Record<string, any> };
       // Convert 1-6 range to 0-100
       const speed = ((status.dps['53'] - 1) / 5) * 100;
@@ -111,7 +109,7 @@ export class TuyaAccessory {
   // Light control methods
   async setLightOn(value: CharacteristicValue) {
     try {
-      await this.device.set({ dps: 20, set: value as boolean }); // Toggle light
+      await this.device.set({ dps: 20, set: value as boolean });
       this.platform.log.debug('Set Light On ->', value);
     } catch (error) {
       this.platform.log.error('Error setting light state:', error);
@@ -121,7 +119,6 @@ export class TuyaAccessory {
 
   async getLightOn(): Promise<CharacteristicValue> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const status = await this.device.get({ schema: true }) as { dps: Record<string, any> };
       const isOn = status.dps['20'];
       this.platform.log.debug('Get Light On ->', isOn);
@@ -136,7 +133,7 @@ export class TuyaAccessory {
     try {
       // Convert 0-100 to 10-1000 range
       const brightness = Math.round(((value as number) / 100) * 990) + 10;
-      await this.device.set({ dps: 22, set: brightness }); // Set brightness
+      await this.device.set({ dps: 22, set: brightness });
       this.platform.log.debug('Set Light Brightness ->', value, 'Tuya Brightness ->', brightness);
     } catch (error) {
       this.platform.log.error('Error setting brightness:', error);
@@ -146,7 +143,6 @@ export class TuyaAccessory {
 
   async getLightBrightness(): Promise<CharacteristicValue> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const status = await this.device.get({ schema: true }) as { dps: Record<string, any> };
       // Convert 10-1000 range to 0-100
       const brightness = ((status.dps['22'] - 10) / 990) * 100;
