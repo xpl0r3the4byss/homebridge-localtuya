@@ -66,6 +66,11 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
       // run the method to discover / register your devices as accessories
       this.discoverDevices();
     });
+
+    // Handle shutdown
+    process.on('SIGTERM', () => {
+      this.shutdown();
+    });
   }
 
   /**
@@ -167,7 +172,7 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
 
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
-        new TuyaAccessory(this, existingAccessory);
+        existingAccessory.context.tuyaAccessory = new TuyaAccessory(this, existingAccessory);
 
         // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, e.g.:
         // remove platform accessories when no longer present
@@ -186,7 +191,7 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
 
         // create the accessory handler for the newly create accessory
         // this is imported from `platformAccessory.ts`
-        new TuyaAccessory(this, accessory);
+        accessory.context.tuyaAccessory = new TuyaAccessory(this, accessory);
 
         // link the accessory to your platform
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
@@ -203,6 +208,14 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
       if (!this.discoveredCacheUUIDs.includes(uuid)) {
         this.log.info('Removing existing accessory from cache:', accessory.displayName);
         this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      }
+    }
+  }
+
+  private shutdown(): void {
+    for (const accessory of this.accessories.values()) {
+      if (accessory.context.tuyaAccessory) {
+        accessory.context.tuyaAccessory.destroy();
       }
     }
   }

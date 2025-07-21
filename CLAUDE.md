@@ -59,6 +59,10 @@
 
 ## Development Guidelines
 
+### Environment Notes
+- `cd` command is aliased to zoxide, use absolute paths in commands instead
+
+
 ### DO NOT
 1. Switch back to tinytuya
 2. Modify working device communication

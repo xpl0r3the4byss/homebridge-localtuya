@@ -64,7 +64,25 @@
         "type": "integer",
         "required": false,
         "default": 10,
-        "description": "Timeout in seconds for device discovery"
+        "minimum": 5,
+        "maximum": 60,
+        "description": "Timeout in seconds for device discovery (5-60)"
+      },
+      "retryAttempts": {
+        "title": "Retry Attempts",
+        "type": "integer",
+        "default": 3,
+        "minimum": 0,
+        "maximum": 10,
+        "description": "Number of retry attempts for failed operations"
+      },
+      "pollingInterval": {
+        "title": "Polling Interval",
+        "type": "integer",
+        "default": 30,
+        "minimum": 10,
+        "maximum": 300,
+        "description": "Interval in seconds to poll device status (10-300)"
       }
     }
   },
@@ -95,6 +113,12 @@
     },
     {
       "key": "discoveryTimeout"
+    },
+    {
+      "key": "retryAttempts"
+    },
+    {
+      "key": "pollingInterval"
     }
   ]
 }
