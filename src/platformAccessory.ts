@@ -71,6 +71,7 @@ export class TuyaAccessory {
 
   async getFanActive(): Promise<CharacteristicValue> {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const status = await this.device.get({ schema: true }) as { dps: Record<string, any> };
       const isActive = status.dps['51'] === true ? 1 : 0;
       this.platform.log.debug('Get Fan Active ->', isActive);
@@ -95,6 +96,7 @@ export class TuyaAccessory {
 
   async getFanSpeed(): Promise<CharacteristicValue> {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const status = await this.device.get({ schema: true }) as { dps: Record<string, any> };
       // Convert 1-6 range to 0-100
       const speed = ((status.dps['53'] - 1) / 5) * 100;
@@ -119,6 +121,7 @@ export class TuyaAccessory {
 
   async getLightOn(): Promise<CharacteristicValue> {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const status = await this.device.get({ schema: true }) as { dps: Record<string, any> };
       const isOn = status.dps['20'];
       this.platform.log.debug('Get Light On ->', isOn);
@@ -143,6 +146,7 @@ export class TuyaAccessory {
 
   async getLightBrightness(): Promise<CharacteristicValue> {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const status = await this.device.get({ schema: true }) as { dps: Record<string, any> };
       // Convert 10-1000 range to 0-100
       const brightness = ((status.dps['22'] - 10) / 990) * 100;
