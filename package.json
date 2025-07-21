@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "homebridge-lib": "^7.1.4",
-    "tinytuya": "^1.15.0"
+    "tuyapi": "^7.5.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

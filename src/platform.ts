@@ -2,7 +2,7 @@ import type { API, Characteristic, DynamicPlatformPlugin, Logging, PlatformAcces
 
 import { TuyaAccessory } from './platformAccessory.js';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
-import TuyaDevice from 'tinytuya';
+import TuyAPI from 'tuyapi';
 
 // This is only required when using Custom Services and Characteristics not support by HomeKit
 import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes';
@@ -76,7 +76,7 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
       const devicesJson = require('../../devices.json');
       if (Array.isArray(devicesJson)) {
         for (const device of devicesJson) {
-          if (!configDevices.find(d => d.id === device.id)) {
+          if (!configDevices.find((d: { id: string }) => d.id === device.id)) {
             configDevices.push({
               name: device.name,
               id: device.id,

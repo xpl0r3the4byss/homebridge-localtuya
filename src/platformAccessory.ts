@@ -1,6 +1,6 @@
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import type { LocalTuyaPlatform } from './platform.js';
-import TuyaDevice from 'tinytuya';
+import TuyAPI from 'tuyapi';
 
 export class TuyaAccessory {
   private fanService: Service;
@@ -14,7 +14,7 @@ export class TuyaAccessory {
     const deviceInfo = accessory.context.device;
 
     // Initialize Tuya device
-    this.device = new TuyaDevice({
+    this.device = new TuyAPI({
       id: deviceInfo.id,
       ip: deviceInfo.ip,
       key: deviceInfo.key,
