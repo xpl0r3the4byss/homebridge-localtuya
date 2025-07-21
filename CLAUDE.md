@@ -16,13 +16,24 @@
 
 2. From GitHub (testing):
    ```bash
+   # In production Homebridge Docker container on Synology NAS
+   # Use terminal inside Homebridge UI with personal access token
    npm install -g github:xpl0r3the4byss/homebridge-localtuya#fixes
    ```
+
+### Deployment Environment
+- Production Homebridge runs in Docker container on Synology NAS
+- Package installation done through terminal in Homebridge UI
+- GitHub installation requires personal access token
 
 ### Known Issues
 - GitHub installation method was working until evening of 2025-07-20, then started having issues
 - Plugin visibility in Homebridge UI has been inconsistent
 - TypeScript checks have been problematic with TuyAPI types
+- Uninstallation may require force flag and sudo due to permission issues:
+  ```bash
+  sudo npm uninstall -g --force homebridge-localtuya
+  ```
 
 ### Working Baseline Version
 - Version: 0.0.1-beta.1
