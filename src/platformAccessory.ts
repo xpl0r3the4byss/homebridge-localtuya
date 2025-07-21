@@ -61,7 +61,7 @@ export class TuyaAccessory {
   // Fan control methods
   async setFanActive(value: CharacteristicValue) {
     try {
-      await this.device.set({dps: '51', set: value === 1});
+      await this.device.set({ dps: '51', set: value === 1 });
       this.platform.log.debug('Set Fan Active ->', value);
     } catch (error) {
       this.platform.log.error('Error setting fan state:', error);
@@ -85,7 +85,7 @@ export class TuyaAccessory {
     try {
       // Convert 0-100 to 1-6 range
       const speed = Math.round((value as number / 100) * 5) + 1;
-      await this.device.set({dps: '53', set: speed});
+      await this.device.set({ dps: '53', set: speed });
       this.platform.log.debug('Set Fan Speed ->', value, 'Tuya Speed ->', speed);
     } catch (error) {
       this.platform.log.error('Error setting fan speed:', error);
@@ -109,7 +109,7 @@ export class TuyaAccessory {
   // Light control methods
   async setLightOn(value: CharacteristicValue) {
     try {
-      await this.device.set({dps: '20', set: value as boolean});
+      await this.device.set({ dps: '20', set: value as boolean });
       this.platform.log.debug('Set Light On ->', value);
     } catch (error) {
       this.platform.log.error('Error setting light state:', error);
@@ -133,7 +133,7 @@ export class TuyaAccessory {
     try {
       // Convert 0-100 to 10-1000 range
       const brightness = Math.round(((value as number) / 100) * 990) + 10;
-      await this.device.set({dps: '22', set: brightness});
+      await this.device.set({ dps: '22', set: brightness });
       this.platform.log.debug('Set Light Brightness ->', value, 'Tuya Brightness ->', brightness);
     } catch (error) {
       this.platform.log.error('Error setting brightness:', error);

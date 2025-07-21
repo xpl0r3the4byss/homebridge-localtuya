@@ -73,6 +73,8 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
     
     // Read devices.json if it exists
     try {
+      // Using require since this is a runtime configuration file
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const devicesJson = require('../../devices.json');
       if (Array.isArray(devicesJson)) {
         for (const device of devicesJson) {
