@@ -12,6 +12,15 @@ interface DiscoveredDevice {
   type?: string;
 }
 
+interface DeviceEvents {
+  data: (data: { dps: Record<string, any> }) => void;
+  'dp-refresh': (data: { dps: Record<string, any> }) => void;
+  connected: () => void;
+  disconnected: () => void;
+  error: (error: Error) => void;
+  device: (device: { id: string; ip: string }) => void;
+}
+
 // This is only required when using Custom Services and Characteristics not support by HomeKit
 import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes';
 
@@ -87,7 +96,7 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
       });
 
       // Listen for device discoveries
-      scanner.on('device', (device: { id: string; ip: string }) => {
+      (scanner as unknown as { on<K extends keyof DeviceEvents>(event: K, listener: DeviceEvents[K]): void }).on('device', (device: { id: string; ip: string }) => {
         this.log.debug('Found device:', device);
         discoveredDevices.push({
           id: device.id,
@@ -114,7 +123,7 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
     
     // Merge discovered devices with config devices
     for (const device of discoveredDevices) {
-      const existingDevice = configDevices.find(d => d.id === device.id);
+      const existingDevice = configDevices.find((d: { id: string }) => d.id === device.id);
       if (existingDevice) {
         // Update IP of existing device
         existingDevice.ip = device.ip;
@@ -134,12 +143,8 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
       }
     }
 
-    // Update platform config with discovered devices
-    this.api.updatePlatformConfig(PLUGIN_NAME, {
-      ...this.config,
-      devices: configDevices,
-    });
-    }
+    // Store updated devices in config
+    this.config.devices = configDevices;
 
     // loop over the discovered devices and register each one if it has not already been registered
     for (const device of configDevices) {
