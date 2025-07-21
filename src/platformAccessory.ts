@@ -1,148 +1,156 @@
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
+import type { LocalTuyaPlatform } from './platform.js';
+import TuyaDevice from 'tinytuya';
 
-import type { ExampleHomebridgePlatform } from './platform.js';
-
-/**
- * Platform Accessory
- * An instance of this class is created for each accessory your platform registers
- * Each accessory may expose multiple services of different service types.
- */
-export class ExamplePlatformAccessory {
-  private service: Service;
-
-  /**
-   * These are just used to create a working example
-   * You should implement your own code to track the state of your accessory
-   */
-  private exampleStates = {
-    On: false,
-    Brightness: 100,
-  };
+export class TuyaAccessory {
+  private fanService: Service;
+  private lightService: Service;
+  private device: any;
 
   constructor(
-    private readonly platform: ExampleHomebridgePlatform,
+    private readonly platform: LocalTuyaPlatform,
     private readonly accessory: PlatformAccessory,
   ) {
-    // set accessory information
+    const deviceInfo = accessory.context.device;
+
+    // Initialize Tuya device
+    this.device = new TuyaDevice({
+      id: deviceInfo.id,
+      ip: deviceInfo.ip,
+      key: deviceInfo.key,
+      version: 3.3
+    });
+
+    // Set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Default-Manufacturer')
-      .setCharacteristic(this.platform.Characteristic.Model, 'Default-Model')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, 'Default-Serial');
+      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Designers Fountain')
+      .setCharacteristic(this.platform.Characteristic.Model, 'Ceiling Fan DF')
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, deviceInfo.id);
 
-    // get the LightBulb service if it exists, otherwise create a new LightBulb service
-    // you can create multiple services for each accessory
+    // Fan service
+    this.fanService = this.accessory.getService(this.platform.Service.Fanv2) || 
+      this.accessory.addService(this.platform.Service.Fanv2);
 
-    if (accessory.context.device.CustomService) {
-      // This is only required when using Custom Services and Characteristics not support by HomeKit
-      this.service = this.accessory.getService(this.platform.CustomServices[accessory.context.device.CustomService]) ||
-        this.accessory.addService(this.platform.CustomServices[accessory.context.device.CustomService]);
-    } else {
-      this.service = this.accessory.getService(this.platform.Service.Lightbulb) || this.accessory.addService(this.platform.Service.Lightbulb);
+    // Light service
+    this.lightService = this.accessory.getService(this.platform.Service.Lightbulb) || 
+      this.accessory.addService(this.platform.Service.Lightbulb);
+
+    // Set service names
+    this.fanService.setCharacteristic(this.platform.Characteristic.Name, deviceInfo.name + ' Fan');
+    this.lightService.setCharacteristic(this.platform.Characteristic.Name, deviceInfo.name + ' Light');
+
+    // Fan characteristics
+    this.fanService.getCharacteristic(this.platform.Characteristic.Active)
+      .onSet(this.setFanActive.bind(this))
+      .onGet(this.getFanActive.bind(this));
+
+    this.fanService.getCharacteristic(this.platform.Characteristic.RotationSpeed)
+      .onSet(this.setFanSpeed.bind(this))
+      .onGet(this.getFanSpeed.bind(this));
+
+    // Light characteristics
+    this.lightService.getCharacteristic(this.platform.Characteristic.On)
+      .onSet(this.setLightOn.bind(this))
+      .onGet(this.getLightOn.bind(this));
+
+    this.lightService.getCharacteristic(this.platform.Characteristic.Brightness)
+      .onSet(this.setLightBrightness.bind(this))
+      .onGet(this.getLightBrightness.bind(this));
+  }
+
+  // Fan control methods
+  async setFanActive(value: CharacteristicValue) {
+    try {
+      await this.device.set_value('51', value === 1);
+      this.platform.log.debug('Set Fan Active ->', value);
+    } catch (error) {
+      this.platform.log.error('Error setting fan state:', error);
+      throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
     }
-
-    // set the service name, this is what is displayed as the default name on the Home app
-    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.exampleDisplayName);
-
-    // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/Lightbulb
-
-    // register handlers for the On/Off Characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.On)
-      .onSet(this.setOn.bind(this)) // SET - bind to the `setOn` method below
-      .onGet(this.getOn.bind(this)); // GET - bind to the `getOn` method below
-
-    // register handlers for the Brightness Characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.Brightness)
-      .onSet(this.setBrightness.bind(this)); // SET - bind to the `setBrightness` method below
-
-    /**
-     * Creating multiple services of the same type.
-     *
-     * To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
-     * when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-     * this.accessory.getService('NAME') || this.accessory.addService(this.platform.Service.Lightbulb, 'NAME', 'USER_DEFINED_SUBTYPE_ID');
-     *
-     * The USER_DEFINED_SUBTYPE must be unique to the platform accessory (if you platform exposes multiple accessories, each accessory
-     * can use the same subtype id.)
-     */
-
-    // Example: add two "motion sensor" services to the accessory
-    const motionSensorOneService = this.accessory.getService('Motion Sensor One Name')
-      || this.accessory.addService(this.platform.Service.MotionSensor, 'Motion Sensor One Name', 'YourUniqueIdentifier-1');
-
-    const motionSensorTwoService = this.accessory.getService('Motion Sensor Two Name')
-      || this.accessory.addService(this.platform.Service.MotionSensor, 'Motion Sensor Two Name', 'YourUniqueIdentifier-2');
-
-    /**
-     * Updating characteristics values asynchronously.
-     *
-     * Example showing how to update the state of a Characteristic asynchronously instead
-     * of using the `on('get')` handlers.
-     * Here we change update the motion sensor trigger states on and off every 10 seconds
-     * the `updateCharacteristic` method.
-     *
-     */
-    let motionDetected = false;
-    setInterval(() => {
-      // EXAMPLE - inverse the trigger
-      motionDetected = !motionDetected;
-
-      // push the new value to HomeKit
-      motionSensorOneService.updateCharacteristic(this.platform.Characteristic.MotionDetected, motionDetected);
-      motionSensorTwoService.updateCharacteristic(this.platform.Characteristic.MotionDetected, !motionDetected);
-
-      this.platform.log.debug('Triggering motionSensorOneService:', motionDetected);
-      this.platform.log.debug('Triggering motionSensorTwoService:', !motionDetected);
-    }, 10000);
   }
 
-  /**
-   * Handle "SET" requests from HomeKit
-   * These are sent when the user changes the state of an accessory, for example, turning on a Light bulb.
-   */
-  async setOn(value: CharacteristicValue) {
-    // implement your own code to turn your device on/off
-    this.exampleStates.On = value as boolean;
-
-    this.platform.log.debug('Set Characteristic On ->', value);
+  async getFanActive(): Promise<CharacteristicValue> {
+    try {
+      const status = await this.device.status();
+      const isActive = status.dps['51'] === true ? 1 : 0;
+      this.platform.log.debug('Get Fan Active ->', isActive);
+      return isActive;
+    } catch (error) {
+      this.platform.log.error('Error getting fan state:', error);
+      throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+    }
   }
 
-  /**
-   * Handle the "GET" requests from HomeKit
-   * These are sent when HomeKit wants to know the current state of the accessory, for example, checking if a Light bulb is on.
-   *
-   * GET requests should return as fast as possible. A long delay here will result in
-   * HomeKit being unresponsive and a bad user experience in general.
-   *
-   * If your device takes time to respond you should update the status of your device
-   * asynchronously instead using the `updateCharacteristic` method instead.
-   * In this case, you may decide not to implement `onGet` handlers, which may speed up
-   * the responsiveness of your device in the Home app.
-
-   * @example
-   * this.service.updateCharacteristic(this.platform.Characteristic.On, true)
-   */
-  async getOn(): Promise<CharacteristicValue> {
-    // implement your own code to check if the device is on
-    const isOn = this.exampleStates.On;
-
-    this.platform.log.debug('Get Characteristic On ->', isOn);
-
-    // if you need to return an error to show the device as "Not Responding" in the Home app:
-    // throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
-
-    return isOn;
+  async setFanSpeed(value: CharacteristicValue) {
+    try {
+      // Convert 0-100 to 1-6 range
+      const speed = Math.round((value as number / 100) * 5) + 1;
+      await this.device.set_value('53', speed);
+      this.platform.log.debug('Set Fan Speed ->', value, 'Tuya Speed ->', speed);
+    } catch (error) {
+      this.platform.log.error('Error setting fan speed:', error);
+      throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+    }
   }
 
-  /**
-   * Handle "SET" requests from HomeKit
-   * These are sent when the user changes the state of an accessory, for example, changing the Brightness
-   */
-  async setBrightness(value: CharacteristicValue) {
-    // implement your own code to set the brightness
-    this.exampleStates.Brightness = value as number;
+  async getFanSpeed(): Promise<CharacteristicValue> {
+    try {
+      const status = await this.device.status();
+      // Convert 1-6 range to 0-100
+      const speed = ((status.dps['53'] - 1) / 5) * 100;
+      this.platform.log.debug('Get Fan Speed ->', speed);
+      return speed;
+    } catch (error) {
+      this.platform.log.error('Error getting fan speed:', error);
+      throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+    }
+  }
 
-    this.platform.log.debug('Set Characteristic Brightness -> ', value);
+  // Light control methods
+  async setLightOn(value: CharacteristicValue) {
+    try {
+      await this.device.set_value('20', value as boolean);
+      this.platform.log.debug('Set Light On ->', value);
+    } catch (error) {
+      this.platform.log.error('Error setting light state:', error);
+      throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+    }
+  }
+
+  async getLightOn(): Promise<CharacteristicValue> {
+    try {
+      const status = await this.device.status();
+      const isOn = status.dps['20'];
+      this.platform.log.debug('Get Light On ->', isOn);
+      return isOn;
+    } catch (error) {
+      this.platform.log.error('Error getting light state:', error);
+      throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+    }
+  }
+
+  async setLightBrightness(value: CharacteristicValue) {
+    try {
+      // Convert 0-100 to 10-1000 range
+      const brightness = Math.round(((value as number) / 100) * 990) + 10;
+      await this.device.set_value('22', brightness);
+      this.platform.log.debug('Set Light Brightness ->', value, 'Tuya Brightness ->', brightness);
+    } catch (error) {
+      this.platform.log.error('Error setting brightness:', error);
+      throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+    }
+  }
+
+  async getLightBrightness(): Promise<CharacteristicValue> {
+    try {
+      const status = await this.device.status();
+      // Convert 10-1000 range to 0-100
+      const brightness = ((status.dps['22'] - 10) / 990) * 100;
+      this.platform.log.debug('Get Light Brightness ->', brightness);
+      return brightness;
+    } catch (error) {
+      this.platform.log.error('Error getting brightness:', error);
+      throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+    }
   }
 }

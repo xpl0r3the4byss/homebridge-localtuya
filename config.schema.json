@@ -1,8 +1,7 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "LocalTuya",
   "pluginType": "platform",
   "singular": true,
-  "strictValidation": false,
   "schema": {
     "type": "object",
     "properties": {
@@ -10,7 +9,53 @@
         "title": "Name",
         "type": "string",
         "required": true,
-        "default": "Example Dynamic Platform"
+        "default": "LocalTuya"
+      },
+      "devices": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string",
+              "required": true,
+              "description": "Name of the device"
+            },
+            "id": {
+              "title": "Device ID",
+              "type": "string",
+              "required": true,
+              "description": "The device ID from Tuya"
+            },
+            "key": {
+              "title": "Local Key",
+              "type": "string",
+              "required": true,
+              "description": "The local key for the device"
+            },
+            "ip": {
+              "title": "IP Address",
+              "type": "string",
+              "required": true,
+              "format": "ipv4",
+              "description": "The local IP address of the device"
+            },
+            "type": {
+              "title": "Device Type",
+              "type": "string",
+              "required": true,
+              "default": "fanLight",
+              "description": "The type of device",
+              "oneOf": [
+                {
+                  "title": "Fan with Light",
+                  "enum": ["fanLight"]
+                }
+              ]
+            }
+          }
+        }
       }
     }
   }
