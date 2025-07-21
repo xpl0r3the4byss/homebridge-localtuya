@@ -73,7 +73,7 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
     
     // Read devices.json if it exists
     try {
-      const devicesJson = require('../../devices.json');
+      const devicesJson = await import('../../devices.json', { assert: { type: 'json' } });
       if (Array.isArray(devicesJson)) {
         for (const device of devicesJson) {
           if (!configDevices.find((d: { id: string }) => d.id === device.id)) {
@@ -82,7 +82,7 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
               id: device.id,
               key: device.key,
               ip: device.ip,
-              type: 'fanLight' // Default type for our fan/light combo
+              type: 'fanLight', // Default type for our fan/light combo
             });
           }
         }

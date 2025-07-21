@@ -5,7 +5,7 @@ import TuyAPI from 'tuyapi';
 export class TuyaAccessory {
   private fanService: Service;
   private lightService: Service;
-  private device: any;
+  private device: TuyAPI;
 
   constructor(
     private readonly platform: LocalTuyaPlatform,
@@ -18,7 +18,7 @@ export class TuyaAccessory {
       id: deviceInfo.id,
       ip: deviceInfo.ip,
       key: deviceInfo.key,
-      version: 3.3
+      version: 3.3,
     });
 
     // Set accessory information
