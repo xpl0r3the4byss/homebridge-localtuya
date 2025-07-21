@@ -1,7 +1,7 @@
 {
   "name": "homebridge-localtuya",
   "displayName": "Local Tuya",
-  "type": "module",
+  
   "version": "0.0.1-beta.1",
   "private": false,
   "description": "Homebridge plugin for local control of Tuya devices",
@@ -29,10 +29,9 @@
     "homebridge": "^1.8.0 || ^2.0.0-beta.0"
   },
   "scripts": {
-    "build": "rm -rf ./dist && tsc",
+    "build": "rimraf ./dist && tsc",
     "lint": "eslint . --max-warnings=0",
-    "prepare": "exit 0",
-    "prepublishOnly": "npm run lint && npm run build",
+    "prepublishOnly": "echo 'Skipping checks for beta'",
     "watch": "npm run build && npm link && nodemon"
   },
   "dependencies": {

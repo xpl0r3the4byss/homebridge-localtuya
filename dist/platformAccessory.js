@@ -1,16 +1,17 @@
-import TuyAPI from 'tuyapi';
-export class TuyaAccessory {
-    platform;
-    accessory;
-    fanService;
-    lightService;
-    device;
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TuyaAccessory = void 0;
+const tuyapi_1 = __importDefault(require("tuyapi"));
+class TuyaAccessory {
     constructor(platform, accessory) {
         this.platform = platform;
         this.accessory = accessory;
         const deviceInfo = accessory.context.device;
         // Initialize Tuya device
-        this.device = new TuyAPI({
+        this.device = new tuyapi_1.default({
             id: deviceInfo.id,
             ip: deviceInfo.ip,
             key: deviceInfo.key,
@@ -146,4 +147,5 @@ export class TuyaAccessory {
         }
     }
 }
+exports.TuyaAccessory = TuyaAccessory;
 //# sourceMappingURL=platformAccessory.js.map

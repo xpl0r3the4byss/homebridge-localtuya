@@ -1,36 +1,32 @@
-import { TuyaAccessory } from './platformAccessory.js';
-import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
-import TuyAPI from 'tuyapi';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LocalTuyaPlatform = void 0;
+const platformAccessory_1 = require("./platformAccessory");
+const settings_1 = require("./settings");
+const tuyapi_1 = __importDefault(require("tuyapi"));
 // This is only required when using Custom Services and Characteristics not support by HomeKit
-import { EveHomeKitTypes } from 'homebridge-lib/EveHomeKitTypes';
+const EveHomeKitTypes_1 = require("homebridge-lib/EveHomeKitTypes");
 /**
  * HomebridgePlatform
  * This class is the main constructor for your plugin, this is where you should
  * parse the user config and discover/register accessories with Homebridge.
  */
-export class LocalTuyaPlatform {
-    log;
-    config;
-    api;
-    Service;
-    Characteristic;
-    // this is used to track restored cached accessories
-    accessories = new Map();
-    discoveredCacheUUIDs = [];
-    // This is only required when using Custom Services and Characteristics not support by HomeKit
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    CustomServices;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    CustomCharacteristics;
+class LocalTuyaPlatform {
     constructor(log, config, api) {
         this.log = log;
         this.config = config;
         this.api = api;
+        // this is used to track restored cached accessories
+        this.accessories = new Map();
+        this.discoveredCacheUUIDs = [];
         this.Service = api.hap.Service;
         this.Characteristic = api.hap.Characteristic;
         // This is only required when using Custom Services and Characteristics not support by HomeKit
-        this.CustomServices = new EveHomeKitTypes(this.api).Services;
-        this.CustomCharacteristics = new EveHomeKitTypes(this.api).Characteristics;
+        this.CustomServices = new EveHomeKitTypes_1.EveHomeKitTypes(this.api).Services;
+        this.CustomCharacteristics = new EveHomeKitTypes_1.EveHomeKitTypes(this.api).Characteristics;
         this.log.debug('Finished initializing platform:', this.config.name);
         // When this event is fired it means Homebridge has restored all cached accessories from disk.
         // Dynamic Platform plugins should only register new accessories after this event was fired,
@@ -61,7 +57,7 @@ export class LocalTuyaPlatform {
         const discoveredDevices = [];
         try {
             // Create a dummy device for scanning
-            const scanner = new TuyAPI({
+            const scanner = new tuyapi_1.default({
                 id: '00000000000000000000',
                 key: '0000000000000000',
             });
@@ -130,7 +126,7 @@ export class LocalTuyaPlatform {
                 // this.api.updatePlatformAccessories([existingAccessory]);
                 // create the accessory handler for the restored accessory
                 // this is imported from `platformAccessory.ts`
-                new TuyaAccessory(this, existingAccessory);
+                new platformAccessory_1.TuyaAccessory(this, existingAccessory);
                 // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, e.g.:
                 // remove platform accessories when no longer present
                 // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
@@ -146,9 +142,9 @@ export class LocalTuyaPlatform {
                 accessory.context.device = device;
                 // create the accessory handler for the newly create accessory
                 // this is imported from `platformAccessory.ts`
-                new TuyaAccessory(this, accessory);
+                new platformAccessory_1.TuyaAccessory(this, accessory);
                 // link the accessory to your platform
-                this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+                this.api.registerPlatformAccessories(settings_1.PLUGIN_NAME, settings_1.PLATFORM_NAME, [accessory]);
             }
             // push into discoveredCacheUUIDs
             this.discoveredCacheUUIDs.push(uuid);
@@ -159,9 +155,10 @@ export class LocalTuyaPlatform {
         for (const [uuid, accessory] of this.accessories) {
             if (!this.discoveredCacheUUIDs.includes(uuid)) {
                 this.log.info('Removing existing accessory from cache:', accessory.displayName);
-                this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+                this.api.unregisterPlatformAccessories(settings_1.PLUGIN_NAME, settings_1.PLATFORM_NAME, [accessory]);
             }
         }
     }
 }
+exports.LocalTuyaPlatform = LocalTuyaPlatform;
 //# sourceMappingURL=platform.js.map

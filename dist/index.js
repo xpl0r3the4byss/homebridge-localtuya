@@ -1,9 +1,7 @@
-import { LocalTuyaPlatform } from './platform.js';
-import { PLATFORM_NAME } from './settings.js';
-/**
- * This method registers the platform with Homebridge
- */
-export default (api) => {
-    api.registerPlatform(PLATFORM_NAME, LocalTuyaPlatform);
+"use strict";
+const platform_1 = require("./platform");
+const settings_1 = require("./settings");
+module.exports = (api) => {
+    api.registerPlatform(settings_1.PLATFORM_NAME, platform_1.LocalTuyaPlatform);
 };
 //# sourceMappingURL=index.js.map

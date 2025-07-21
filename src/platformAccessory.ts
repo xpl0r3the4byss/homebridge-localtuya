@@ -1,5 +1,5 @@
 import type { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import type { LocalTuyaPlatform } from './platform.js';
+import { LocalTuyaPlatform } from './platform';
 import TuyAPI from 'tuyapi';
 
 export class TuyaAccessory {

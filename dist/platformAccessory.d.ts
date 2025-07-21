@@ -1,5 +1,5 @@
 import type { CharacteristicValue, PlatformAccessory } from 'homebridge';
-import type { LocalTuyaPlatform } from './platform.js';
+import { LocalTuyaPlatform } from './platform';
 export declare class TuyaAccessory {
     private readonly platform;
     private readonly accessory;
