@@ -1,28 +1,79 @@
 # CRITICAL: READ THIS FIRST
 
-## Working Baseline Version
+## Project Status (Last Updated: 2025-07-21)
+
+### Current Work
+- Working on 'fixes' branch to add auto-discovery feature
+- Changed build system from ES modules to CommonJS to fix visibility in Homebridge UI
+- Fixed various TypeScript issues
+- Currently testing direct installation from GitHub fixes branch
+
+### Installation Methods
+1. From npm (stable):
+   ```bash
+   npm install -g homebridge-localtuya@beta
+   ```
+
+2. From GitHub (testing):
+   ```bash
+   npm install -g github:xpl0r3the4byss/homebridge-localtuya#fixes
+   ```
+
+### Known Issues
+- GitHub installation method was working until evening of 2025-07-20, then started having issues
+- Plugin visibility in Homebridge UI has been inconsistent
+- TypeScript checks have been problematic with TuyAPI types
+
+### Working Baseline Version
 - Version: 0.0.1-beta.1
 - Git commit: 42562da
 - Status: **WORKING CORRECTLY**
 - Published on npm with beta tag
 
-## WARNING
-DO NOT FUCK WITH THIS WORKING VERSION. Previous attempts to "fix" or "improve" minor issues resulted in completely breaking the plugin. Unless explicitly asked to make specific changes, maintain this working baseline.
+### Recent Changes
+1. Switched from tinytuya to tuyapi library
+2. Added device auto-discovery feature
+3. Changed from ES modules to CommonJS
+4. Removed unnecessary dev dependencies (rimraf)
+5. Fixed TypeScript type issues with TuyAPI
 
-## Key Details
-- Using tuyapi instead of tinytuya
-- TypeScript checks temporarily disabled for publishing
-- Successfully shows up in Homebridge UI plugin search
+## Technical Details
 
-## Critical Changes That Led to Working Version
-1. Changed from tinytuya to tuyapi
-2. Set version to 0.0.1-beta.1
-3. Disabled TypeScript checks in package.json prepublishOnly script
-4. Published with beta tag
+### Architecture
+- Uses tuyapi for local device control
+- Supports auto-discovery of devices on local network
+- Configured through Homebridge UI
+- Handles both fan and light controls
 
-## Next Time
-If asked to work on this project:
-1. Check this commit is still the baseline
-2. Do NOT attempt to "fix" TypeScript issues unless specifically requested
-3. Do NOT modify any working functionality unless specifically requested
-4. If changes are needed, create a new branch from this working version
+### Device Communication
+- Fan controls: dps 51 (on/off), dps 53 (speed 1-6)
+- Light controls: dps 20 (on/off), dps 22 (brightness 10-1000)
+- Uses local network, no cloud dependency
+- Supports protocol version 3.3
+
+### Configuration
+- Devices can be auto-discovered
+- Only needs local key from user
+- IPs are auto-updated during discovery
+- Default device type is 'fanLight'
+
+## Development Guidelines
+
+### DO NOT
+1. Switch back to tinytuya
+2. Modify working device communication
+3. Change TypeScript configuration unless necessary
+4. Add unnecessary dependencies
+5. Mess with the module system (keep CommonJS)
+
+### Future Improvements Needed
+1. Better error handling for device communication
+2. Proper TypeScript types for TuyAPI
+3. More robust device discovery
+4. Support for different device types
+
+### Branch Strategy
+- 'latest' branch contains stable, working version
+- 'fixes' branch for testing new features
+- Always test changes on 'fixes' before merging to 'latest'
+- When merging to 'latest', publish new beta version to npm
