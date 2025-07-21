@@ -67,13 +67,13 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
    * Accessories must only be registered once, previously created accessories
    * must not be registered again to prevent "duplicate UUID" errors.
    */
-  discoverDevices() {
+  async discoverDevices() {
     // Get devices from config
     const configDevices = this.config.devices || [];
     
     // Read devices.json if it exists
     try {
-      const devicesJson = await import('../../devices.json', { assert: { type: 'json' } });
+      const devicesJson = require('../../devices.json');
       if (Array.isArray(devicesJson)) {
         for (const device of devicesJson) {
           if (!configDevices.find((d: { id: string }) => d.id === device.id)) {
