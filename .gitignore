@@ -1,6 +1,3 @@
-# Ignore compiled code
-dist
-
 # ------------- Defaults ------------- #
 .DS_Store
 
@@ -87,7 +84,6 @@ web_modules/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
@@ -114,7 +110,6 @@ dist
 .vscode-test
 
 # yarn v2
-
 .yarn/cache
 .yarn/unplugged
 .yarn/build-state.yml
