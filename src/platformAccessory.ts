@@ -250,7 +250,7 @@ export class TuyaAccessory {
         throw new Error('Invalid device status');
       }
       // Convert 1-6 range to 0-100
-      const speed = ((response.dps['53'] - 1) / 5) * 100;
+      const speed = response.dps['53'] !== undefined ? ((response.dps['53'] - 1) / 5) * 100 : 0;
       this.platform.log.debug('Get Fan Speed ->', speed);
       return speed;
     } catch (error) {
@@ -281,7 +281,7 @@ export class TuyaAccessory {
       if (!isValidDeviceStatus(response)) {
         throw new Error('Invalid device status');
       }
-      const isOn = response.dps['20'];
+      const isOn = response.dps['20'] ?? false;
       this.platform.log.debug('Get Light On ->', isOn);
       return isOn;
     } catch (error) {
@@ -314,7 +314,7 @@ export class TuyaAccessory {
         throw new Error('Invalid device status');
       }
       // Convert 10-1000 range to 0-100
-      const brightness = ((response.dps['22'] - 10) / 990) * 100;
+      const brightness = response.dps['22'] !== undefined ? ((response.dps['22'] - 10) / 990) * 100 : 0;
       this.platform.log.debug('Get Light Brightness ->', brightness);
       return brightness;
     } catch (error) {
