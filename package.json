@@ -3,6 +3,7 @@
   "displayName": "Local Tuya",
   "version": "0.0.1-beta.1",
   "private": false,
+  "type": "module",
   "description": "Homebridge plugin for local control of Tuya devices",
   "author": "xpl0r3the4byss",
   "license": "Apache-2.0",
@@ -24,13 +25,13 @@
   ],
   "main": "./dist/index.js",
   "engines": {
-    "node": "^18.20.4 || ^20.18.0 || ^22.10.0 || ^24.4.1",
+    "node": "^18.20.4 || ^20.18.0 || ^22.17.0",
     "homebridge": "^1.8.0 || ^2.0.0-beta.0"
   },
   "scripts": {
+    "clean": "rm -rf ./dist ./node_modules package-lock.json",
     "build": "rm -rf ./dist && tsc",
     "lint": "eslint . --max-warnings=0",
-    "prepare": "npm install --include=dev && npm run build",
     "prepublishOnly": "npm run lint && npm run build",
     "watch": "npm run build && npm link && nodemon"
   },

@@ -1,19 +1,21 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.isValidDeviceStatus = isValidDeviceStatus;
-function isValidDeviceStatus(data) {
-    if (!data || typeof data.dps !== 'object') {
+export function isValidDeviceStatus(data) {
+    if (!data || typeof data !== 'object' || !('dps' in data) || typeof data.dps !== 'object') {
         return false;
     }
     // Optional validation for each DPS value
-    if ('20' in data.dps && typeof data.dps['20'] !== 'boolean')
+    const typedData = data;
+    if ('20' in typedData.dps && typeof typedData.dps['20'] !== 'boolean') {
         return false;
-    if ('22' in data.dps && typeof data.dps['22'] !== 'number')
+    }
+    if ('22' in typedData.dps && typeof typedData.dps['22'] !== 'number') {
         return false;
-    if ('51' in data.dps && typeof data.dps['51'] !== 'boolean')
+    }
+    if ('51' in typedData.dps && typeof typedData.dps['51'] !== 'boolean') {
         return false;
-    if ('53' in data.dps && typeof data.dps['53'] !== 'number')
+    }
+    if ('53' in typedData.dps && typeof typedData.dps['53'] !== 'number') {
         return false;
+    }
     return true;
 }
 //# sourceMappingURL=tuya.js.map

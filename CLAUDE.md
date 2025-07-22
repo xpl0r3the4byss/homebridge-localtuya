@@ -4,7 +4,7 @@
 
 ### Current Work
 - Working on 'fixes' branch to add auto-discovery feature
-- Changed build system from ES modules to CommonJS to fix visibility in Homebridge UI
+- Using Node16 modules for TypeScript compatibility with Homebridge
 - Fixed various TypeScript issues
 - Currently testing direct installation from GitHub fixes branch
 
@@ -44,7 +44,7 @@
 ### Recent Changes
 1. Switched from tinytuya to tuyapi library
 2. Added device auto-discovery feature
-3. Changed from ES modules to CommonJS
+3. Updated TypeScript configuration to use Node16 modules
 4. Removed unnecessary dev dependencies (rimraf)
 5. Fixed TypeScript type issues with TuyAPI
 
@@ -79,7 +79,7 @@
 2. Modify working device communication
 3. Change TypeScript configuration unless necessary
 4. Add unnecessary dependencies
-5. Mess with the module system (keep CommonJS)
+5. Change module system configuration
 
 ### Future Improvements Needed
 1. Better error handling for device communication

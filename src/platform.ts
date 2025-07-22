@@ -1,7 +1,7 @@
 import { API, Characteristic, DynamicPlatformPlugin, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
 
-import { TuyaAccessory } from './platformAccessory';
-import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
+import { TuyaAccessory } from './platformAccessory.js';
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 import TuyAPI from 'tuyapi';
 
 interface DiscoveredDevice {
@@ -13,8 +13,8 @@ interface DiscoveredDevice {
 }
 
 interface DeviceEvents {
-  data: (data: { dps: Record<string, any> }) => void;
-  'dp-refresh': (data: { dps: Record<string, any> }) => void;
+  data: (data: { dps: Record<string, boolean | number> }) => void;
+  'dp-refresh': (data: { dps: Record<string, boolean | number> }) => void;
   connected: () => void;
   disconnected: () => void;
   error: (error: Error) => void;
@@ -101,7 +101,10 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
       });
 
       // Listen for device discoveries
-      (scanner as unknown as { on<K extends keyof DeviceEvents>(event: K, listener: DeviceEvents[K]): void }).on('device', (device: { id: string; ip: string }) => {
+      const typedScanner = scanner as unknown as { 
+        on<K extends keyof DeviceEvents>(event: K, listener: DeviceEvents[K]): void 
+      };
+      typedScanner.on('device', (device: { id: string; ip: string }) => {
         this.log.debug('Found device:', device);
         discoveredDevices.push({
           id: device.id,

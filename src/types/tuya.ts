@@ -7,16 +7,17 @@ export interface TuyaDeviceStatus {
   };
 }
 
-export function isValidDeviceStatus(data: any): data is TuyaDeviceStatus {
-  if (!data || typeof data.dps !== 'object') {
+export function isValidDeviceStatus(data: unknown): data is TuyaDeviceStatus {
+  if (!data || typeof data !== 'object' || !('dps' in data) || typeof (data as { dps: unknown }).dps !== 'object') {
     return false;
   }
 
   // Optional validation for each DPS value
-  if ('20' in data.dps && typeof data.dps['20'] !== 'boolean') return false;
-  if ('22' in data.dps && typeof data.dps['22'] !== 'number') return false;
-  if ('51' in data.dps && typeof data.dps['51'] !== 'boolean') return false;
-  if ('53' in data.dps && typeof data.dps['53'] !== 'number') return false;
+  const typedData = data as { dps: Record<string, unknown> };
+  if ('20' in typedData.dps && typeof typedData.dps['20'] !== 'boolean') { return false; }
+  if ('22' in typedData.dps && typeof typedData.dps['22'] !== 'number') { return false; }
+  if ('51' in typedData.dps && typeof typedData.dps['51'] !== 'boolean') { return false; }
+  if ('53' in typedData.dps && typeof typedData.dps['53'] !== 'number') { return false; }
 
   return true;
 }

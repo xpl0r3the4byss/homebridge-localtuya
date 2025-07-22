@@ -1,12 +1,6 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TuyaAccessory = void 0;
-const tuyapi_1 = __importDefault(require("tuyapi"));
-const tuya_1 = require("./types/tuya");
-class TuyaAccessory {
+import TuyAPI from 'tuyapi';
+import { isValidDeviceStatus } from './types/tuya.js';
+export class TuyaAccessory {
     constructor(platform, accessory) {
         this.platform = platform;
         this.accessory = accessory;
@@ -15,7 +9,7 @@ class TuyaAccessory {
         this.maxRetries = 3;
         const deviceInfo = accessory.context.device;
         // Initialize Tuya device
-        this.device = new tuyapi_1.default({
+        this.device = new TuyAPI({
             id: deviceInfo.id,
             ip: deviceInfo.ip,
             key: deviceInfo.key,
@@ -34,7 +28,7 @@ class TuyaAccessory {
             this.scheduleReconnect();
         });
         this.device.on('data', (data) => {
-            if ((0, tuya_1.isValidDeviceStatus)(data)) {
+            if (isValidDeviceStatus(data)) {
                 this.updateCharacteristics(data);
             }
         });
@@ -91,7 +85,7 @@ class TuyaAccessory {
             if (this.isConnected) {
                 try {
                     const status = await this.device.get({ schema: true });
-                    if ((0, tuya_1.isValidDeviceStatus)(status)) {
+                    if (isValidDeviceStatus(status)) {
                         this.updateCharacteristics(status);
                     }
                 }
@@ -119,8 +113,9 @@ class TuyaAccessory {
         }
     }
     async connect() {
-        if (this.isConnected)
+        if (this.isConnected) {
             return;
+        }
         try {
             await this.device.connect();
             this.isConnected = true;
@@ -165,7 +160,7 @@ class TuyaAccessory {
                 await this.connect();
             }
             const response = await this.device.get({ schema: true });
-            if (!(0, tuya_1.isValidDeviceStatus)(response)) {
+            if (!isValidDeviceStatus(response)) {
                 throw new Error('Invalid device status');
             }
             const isActive = response.dps['51'] === true ? 1 : 0;
@@ -197,7 +192,7 @@ class TuyaAccessory {
                 await this.connect();
             }
             const response = await this.device.get({ schema: true });
-            if (!(0, tuya_1.isValidDeviceStatus)(response)) {
+            if (!isValidDeviceStatus(response)) {
                 throw new Error('Invalid device status');
             }
             // Convert 1-6 range to 0-100
@@ -230,7 +225,7 @@ class TuyaAccessory {
                 await this.connect();
             }
             const response = await this.device.get({ schema: true });
-            if (!(0, tuya_1.isValidDeviceStatus)(response)) {
+            if (!isValidDeviceStatus(response)) {
                 throw new Error('Invalid device status');
             }
             const isOn = (_a = response.dps['20']) !== null && _a !== void 0 ? _a : false;
@@ -262,7 +257,7 @@ class TuyaAccessory {
                 await this.connect();
             }
             const response = await this.device.get({ schema: true });
-            if (!(0, tuya_1.isValidDeviceStatus)(response)) {
+            if (!isValidDeviceStatus(response)) {
                 throw new Error('Invalid device status');
             }
             // Convert 10-1000 range to 0-100
@@ -277,5 +272,4 @@ class TuyaAccessory {
         }
     }
 }
-exports.TuyaAccessory = TuyaAccessory;
 //# sourceMappingURL=platformAccessory.js.map

@@ -6,4 +6,4 @@ export interface TuyaDeviceStatus {
         '53'?: number;
     };
 }
-export declare function isValidDeviceStatus(data: any): data is TuyaDeviceStatus;
+export declare function isValidDeviceStatus(data: unknown): data is TuyaDeviceStatus;

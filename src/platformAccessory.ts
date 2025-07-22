@@ -1,7 +1,7 @@
 import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
-import { LocalTuyaPlatform } from './platform';
+import { LocalTuyaPlatform } from './platform.js';
 import TuyAPI from 'tuyapi';
-import { TuyaDeviceStatus, isValidDeviceStatus } from './types/tuya';
+import { TuyaDeviceStatus, isValidDeviceStatus } from './types/tuya.js';
 
 export class TuyaAccessory {
   private fanService: Service;
@@ -90,21 +90,21 @@ export class TuyaAccessory {
     if (error.message.includes('timeout')) {
       this.platform.log.error(`Timeout during ${operation} for ${this.accessory.displayName}`);
       return new this.platform.api.hap.HapStatusError(
-        this.platform.api.hap.HAPStatus.OPERATION_TIMED_OUT
+        this.platform.api.hap.HAPStatus.OPERATION_TIMED_OUT,
       );
     }
     
     if (error.message.includes('ECONNREFUSED')) {
       this.platform.log.error(`Device offline during ${operation} for ${this.accessory.displayName}`);
       return new this.platform.api.hap.HapStatusError(
-        this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE
+        this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE,
       );
     }
     
     if (error.message.includes('Invalid device status')) {
       this.platform.log.error(`Invalid response during ${operation} for ${this.accessory.displayName}`);
       return new this.platform.api.hap.HapStatusError(
-        this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE
+        this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE,
       );
     }
     
@@ -166,7 +166,7 @@ export class TuyaAccessory {
   }
 
   private async connect(): Promise<void> {
-    if (this.isConnected) return;
+    if (this.isConnected) { return; }
     
     try {
       await this.device.connect();
