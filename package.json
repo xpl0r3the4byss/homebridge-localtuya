@@ -24,6 +24,10 @@
     "local control"
   ],
   "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "config.schema.json"
+  ],
   "engines": {
     "node": "^18.20.4 || ^20.18.0 || ^22.17.0",
     "homebridge": "^1.8.0 || ^2.0.0-beta.0"
