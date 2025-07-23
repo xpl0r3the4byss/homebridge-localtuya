@@ -1,4 +1,6 @@
 import TuyAPI from 'tuyapi';
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 5000; // 5 seconds between retries
 export class TuyaAccessory {
     platform;
     accessory;
@@ -10,10 +12,13 @@ export class TuyaAccessory {
         fanSpeed: 0,
         lightOn: false,
         lightBrightness: 0,
-        lastUpdate: 0
+        lastUpdate: 0,
+        isOnline: true,
+        retryCount: 0
     };
     cacheTimeout = 500; // Cache timeout in milliseconds
     refreshInterval;
+    retryTimeout = null;
     constructor(platform, accessory) {
         this.platform = platform;
         this.accessory = accessory;
@@ -25,8 +30,16 @@ export class TuyaAccessory {
             key: deviceInfo.key,
             version: 3.3,
         });
+        // Set up event handlers
+        this.device.on('error', this.handleDeviceError.bind(this));
+        this.device.on('connected', this.handleDeviceConnected.bind(this));
+        this.device.on('disconnected', this.handleDeviceDisconnected.bind(this));
         // Start periodic state refresh
         this.refreshInterval = setInterval(this.refreshState.bind(this), 1000);
+        // Set up status reporting characteristic
+        this.accessory.getService(this.platform.Service.AccessoryInformation)
+            .addCharacteristic(this.platform.Characteristic.StatusActive)
+            .onGet(() => this.state.isOnline);
         // Set accessory information
         this.accessory.getService(this.platform.Service.AccessoryInformation)
             .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Designers Fountain')
@@ -56,136 +69,190 @@ export class TuyaAccessory {
             .onSet(this.setLightBrightness.bind(this))
             .onGet(this.getLightBrightness.bind(this));
     }
-    async refreshState() {
-        try {
-            const status = await this.device.get({ schema: true });
-            this.state = {
-                fanActive: status.dps['51'] === true,
-                fanSpeed: ((status.dps['53'] - 1) / 5) * 100,
-                lightOn: status.dps['20'] === true,
-                lightBrightness: ((status.dps['22'] - 10) / 990) * 100,
-                lastUpdate: Date.now()
-            };
-            this.platform.log.debug('State refreshed:', this.state);
-        }
-        catch (error) {
-            this.platform.log.error('Error refreshing state:', error);
-        }
-    }
-    isCacheValid() {
-        return Date.now() - this.state.lastUpdate < this.cacheTimeout;
-    }
     // Fan control methods
     async setFanActive(value) {
-        try {
+        await this.safeDeviceOperation(async () => {
             await this.device.set({ dps: 51, set: value === 1 }); // Toggle fan
             this.state.fanActive = value === 1;
             this.state.lastUpdate = Date.now();
             this.platform.log.debug('Set Fan Active ->', value);
-        }
-        catch (error) {
-            this.platform.log.error('Error setting fan state:', error);
-            throw new this.platform.api.hap.HapStatusError(-70402 /* this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE */);
-        }
+        }, undefined);
     }
     async getFanActive() {
-        try {
-            if (!this.isCacheValid()) {
-                await this.refreshState();
-            }
-            const isActive = this.state.fanActive ? 1 : 0;
-            this.platform.log.debug('Get Fan Active ->', isActive);
-            return isActive;
+        if (!this.state.isOnline) {
+            return this.state.fanActive ? 1 : 0;
         }
-        catch (error) {
-            this.platform.log.error('Error getting fan state:', error);
-            throw new this.platform.api.hap.HapStatusError(-70402 /* this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE */);
+        if (this.isCacheValid()) {
+            return this.state.fanActive ? 1 : 0;
         }
+        return await this.safeDeviceOperation(async () => {
+            await this.refreshState();
+            return this.state.fanActive ? 1 : 0;
+        }, 0);
     }
     async setFanSpeed(value) {
-        try {
+        await this.safeDeviceOperation(async () => {
             // Convert 0-100 to 1-6 range
             const speed = Math.round((value / 100) * 5) + 1;
             await this.device.set({ dps: 53, set: speed }); // Set fan speed
             this.state.fanSpeed = value;
             this.state.lastUpdate = Date.now();
             this.platform.log.debug('Set Fan Speed ->', value, 'Tuya Speed ->', speed);
-        }
-        catch (error) {
-            this.platform.log.error('Error setting fan speed:', error);
-            throw new this.platform.api.hap.HapStatusError(-70402 /* this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE */);
-        }
+        }, undefined);
     }
     async getFanSpeed() {
-        try {
-            if (!this.isCacheValid()) {
-                await this.refreshState();
-            }
-            this.platform.log.debug('Get Fan Speed ->', this.state.fanSpeed);
+        if (!this.state.isOnline) {
             return this.state.fanSpeed;
         }
-        catch (error) {
-            this.platform.log.error('Error getting fan speed:', error);
-            throw new this.platform.api.hap.HapStatusError(-70402 /* this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE */);
+        if (this.isCacheValid()) {
+            return this.state.fanSpeed;
         }
+        return await this.safeDeviceOperation(async () => {
+            await this.refreshState();
+            return this.state.fanSpeed;
+        }, 0);
     }
     // Light control methods
     async setLightOn(value) {
-        try {
+        await this.safeDeviceOperation(async () => {
             await this.device.set({ dps: 20, set: value }); // Toggle light
             this.state.lightOn = value;
             this.state.lastUpdate = Date.now();
             this.platform.log.debug('Set Light On ->', value);
-        }
-        catch (error) {
-            this.platform.log.error('Error setting light state:', error);
-            throw new this.platform.api.hap.HapStatusError(-70402 /* this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE */);
-        }
+        }, undefined);
     }
     async getLightOn() {
-        try {
-            if (!this.isCacheValid()) {
-                await this.refreshState();
-            }
-            this.platform.log.debug('Get Light On ->', this.state.lightOn);
+        if (!this.state.isOnline) {
             return this.state.lightOn;
         }
-        catch (error) {
-            this.platform.log.error('Error getting light state:', error);
-            throw new this.platform.api.hap.HapStatusError(-70402 /* this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE */);
+        if (this.isCacheValid()) {
+            return this.state.lightOn;
         }
+        return await this.safeDeviceOperation(async () => {
+            await this.refreshState();
+            return this.state.lightOn;
+        }, false);
     }
     async setLightBrightness(value) {
-        try {
+        await this.safeDeviceOperation(async () => {
             // Convert 0-100 to 10-1000 range
             const brightness = Math.round((value / 100) * 990) + 10;
             await this.device.set({ dps: 22, set: brightness }); // Set brightness
             this.state.lightBrightness = value;
             this.state.lastUpdate = Date.now();
             this.platform.log.debug('Set Light Brightness ->', value, 'Tuya Brightness ->', brightness);
-        }
-        catch (error) {
-            this.platform.log.error('Error setting brightness:', error);
-            throw new this.platform.api.hap.HapStatusError(-70402 /* this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE */);
-        }
+        }, undefined);
     }
     async getLightBrightness() {
-        try {
-            if (!this.isCacheValid()) {
-                await this.refreshState();
-            }
-            this.platform.log.debug('Get Light Brightness ->', this.state.lightBrightness);
+        if (!this.state.isOnline) {
             return this.state.lightBrightness;
         }
+        if (this.isCacheValid()) {
+            return this.state.lightBrightness;
+        }
+        return await this.safeDeviceOperation(async () => {
+            await this.refreshState();
+            return this.state.lightBrightness;
+        }, 0);
+    }
+    handleDeviceError(error) {
+        this.platform.log.error(`Device ${this.accessory.displayName} error:`, error.message);
+        if (error.message.includes('EHOSTUNREACH') || error.message.includes('ETIMEDOUT')) {
+            this.handleDeviceDisconnected();
+        }
+    }
+    handleDeviceConnected() {
+        if (!this.state.isOnline) {
+            this.platform.log.info(`Device ${this.accessory.displayName} is back online`);
+            this.state.isOnline = true;
+            this.state.retryCount = 0;
+            // Update HomeKit status
+            this.accessory.getService(this.platform.Service.AccessoryInformation)
+                .updateCharacteristic(this.platform.Characteristic.StatusActive, true);
+            if (this.retryTimeout) {
+                clearTimeout(this.retryTimeout);
+                this.retryTimeout = null;
+            }
+        }
+    }
+    handleDeviceDisconnected() {
+        if (this.state.isOnline) {
+            this.platform.log.warn(`Device ${this.accessory.displayName} is offline`);
+            this.state.isOnline = false;
+            // Update HomeKit status
+            this.accessory.getService(this.platform.Service.AccessoryInformation)
+                .updateCharacteristic(this.platform.Characteristic.StatusActive, false);
+            this.scheduleRetry();
+        }
+    }
+    isCacheValid() {
+        return Date.now() - this.state.lastUpdate < this.cacheTimeout;
+    }
+    scheduleRetry() {
+        if (this.state.retryCount >= MAX_RETRIES) {
+            this.platform.log.error(`Device ${this.accessory.displayName} failed to reconnect after ${MAX_RETRIES} attempts`);
+            return;
+        }
+        if (this.retryTimeout) {
+            clearTimeout(this.retryTimeout);
+        }
+        this.retryTimeout = setTimeout(async () => {
+            try {
+                this.state.retryCount++;
+                this.platform.log.debug(`Attempting to reconnect to ${this.accessory.displayName} (attempt ${this.state.retryCount})`);
+                await this.refreshState();
+            }
+            catch (error) {
+                this.platform.log.error(`Retry attempt ${this.state.retryCount} failed:`, error);
+                if (this.state.retryCount < MAX_RETRIES) {
+                    this.scheduleRetry();
+                }
+            }
+        }, RETRY_DELAY);
+    }
+    async safeDeviceOperation(operation, defaultValue) {
+        if (!this.state.isOnline) {
+            throw new this.platform.api.hap.HapStatusError(-70402 /* this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE */);
+        }
+        try {
+            return await operation();
+        }
         catch (error) {
-            this.platform.log.error('Error getting brightness:', error);
+            this.platform.log.error('Device operation failed:', error);
+            this.handleDeviceError(error);
             throw new this.platform.api.hap.HapStatusError(-70402 /* this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE */);
         }
     }
-    // Cleanup method to clear the refresh interval
+    async refreshState() {
+        if (!this.state.isOnline && this.state.retryCount >= MAX_RETRIES) {
+            return;
+        }
+        try {
+            const status = await this.device.get({ schema: true });
+            this.state = {
+                ...this.state,
+                fanActive: status.dps['51'] === true,
+                fanSpeed: ((status.dps['53'] - 1) / 5) * 100,
+                lightOn: status.dps['20'] === true,
+                lightBrightness: ((status.dps['22'] - 10) / 990) * 100,
+                lastUpdate: Date.now(),
+                isOnline: true,
+                retryCount: 0
+            };
+            this.handleDeviceConnected();
+            this.platform.log.debug('State refreshed:', this.state);
+        }
+        catch (error) {
+            this.handleDeviceError(error);
+        }
+    }
+    // Cleanup method
     destroy() {
         if (this.refreshInterval) {
             clearInterval(this.refreshInterval);
+        }
+        if (this.retryTimeout) {
+            clearTimeout(this.retryTimeout);
         }
     }
 }

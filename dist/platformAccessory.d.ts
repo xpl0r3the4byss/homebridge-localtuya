@@ -9,9 +9,8 @@ export declare class TuyaAccessory {
     private state;
     private readonly cacheTimeout;
     private refreshInterval;
+    private retryTimeout;
     constructor(platform: LocalTuyaPlatform, accessory: PlatformAccessory);
-    private refreshState;
-    private isCacheValid;
     setFanActive(value: CharacteristicValue): Promise<void>;
     getFanActive(): Promise<CharacteristicValue>;
     setFanSpeed(value: CharacteristicValue): Promise<void>;
@@ -20,5 +19,12 @@ export declare class TuyaAccessory {
     getLightOn(): Promise<CharacteristicValue>;
     setLightBrightness(value: CharacteristicValue): Promise<void>;
     getLightBrightness(): Promise<CharacteristicValue>;
+    private handleDeviceError;
+    private handleDeviceConnected;
+    private handleDeviceDisconnected;
+    private isCacheValid;
+    private scheduleRetry;
+    private safeDeviceOperation;
+    private refreshState;
     destroy(): void;
 }
