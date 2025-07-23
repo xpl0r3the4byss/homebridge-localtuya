@@ -32,17 +32,28 @@ interface TuyaResponse {
 }
 
 function isValidResponse(response: unknown): response is TuyaResponse {
-  if (!response || typeof response !== 'object') {
+  try {
+    if (!response || typeof response !== 'object') {
+      return false;
+    }
+
+    const dps = (response as TuyaResponse).dps;
+    
+    // If no dps object at all, invalid
+    if (!dps || typeof dps !== 'object') {
+      return false;
+    }
+
+    // At least one expected property should be present and have the right type
+    return (
+      (('51' in dps && typeof dps['51'] === 'boolean') ||
+       ('53' in dps && typeof dps['53'] === 'number') ||
+       ('20' in dps && typeof dps['20'] === 'boolean') ||
+       ('22' in dps && typeof dps['22'] === 'number'))
+    );
+  } catch (error) {
     return false;
   }
-
-  const dps = (response as TuyaResponse).dps;
-  if (!dps || typeof dps !== 'object') {
-    return false;
-  }
-
-  // Check if any of our expected properties exist
-  return '51' in dps || '53' in dps || '20' in dps || '22' in dps;
 }
 
 function parseDpsValue(dps: Record<string, any>, key: string, defaultValue: any): any {
@@ -416,10 +427,21 @@ export class TuyaAccessory {
     try {
       const response = await this.device.get({ schema: true });
       
+      if (this.platform.config.debug) {
+        this.platform.log.debug(`Device ${this.accessory.displayName} response:`, JSON.stringify(response));
+      }
+
       if (!isValidResponse(response)) {
-        if (this.platform.config.debug) {
-          this.platform.log.debug(`Invalid device response: ${JSON.stringify(response)}`);
+        this.platform.log.debug(`Device ${this.accessory.displayName} invalid response:`, 
+          `dps=${response && typeof response === 'object' ? JSON.stringify((response as any).dps) : 'none'}`);
+        
+        // For initial connection, be more lenient
+        if (this.state.consecutiveTimeouts > 0) {
+          // Device just came back, wait for next refresh
+          this.state.consecutiveTimeouts = 0;
+          return;
         }
+        
         throw new Error('Invalid device response format');
       }
 
