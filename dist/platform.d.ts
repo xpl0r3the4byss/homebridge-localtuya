@@ -11,6 +11,7 @@ export declare class LocalTuyaPlatform implements DynamicPlatformPlugin {
     readonly Service: typeof Service;
     readonly Characteristic: typeof Characteristic;
     readonly accessories: Map<string, PlatformAccessory>;
+    private readonly accessoryHandlers;
     readonly discoveredCacheUUIDs: string[];
     readonly CustomServices: any;
     readonly CustomCharacteristics: any;

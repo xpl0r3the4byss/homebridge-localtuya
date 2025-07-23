@@ -15,10 +15,14 @@ interface DeviceState {
   consecutiveTimeouts: number;
 }
 
+interface TuyaResponse {
+  dps: Record<string, unknown>;
+}
+
 // Known initialization DPS codes that may appear during power-up
 const INIT_DPS = ['33', '35'];
 
-function isValidResponse(response: unknown, isReconnecting: boolean = false): response is TuyaResponse {
+function isValidResponse(response: unknown, isReconnecting = false): response is TuyaResponse {
   if (!response || typeof response !== 'object') {
     return false;
   }
@@ -42,7 +46,7 @@ function isValidResponse(response: unknown, isReconnecting: boolean = false): re
   );
 }
 
-function parseDpsValue(dps: Record<string, any>, key: string, defaultValue: any): any {
+function parseDpsValue(dps: Record<string, unknown>, key: string, defaultValue: unknown): unknown {
   if (!(key in dps)) {
     return defaultValue;
   }
@@ -80,7 +84,7 @@ export class TuyaAccessory {
     isOnline: true,
     retryCount: 0,
     lastConnectionAttempt: 0,
-    consecutiveTimeouts: 0
+    consecutiveTimeouts: 0,
   };
   private readonly cacheTimeout = 500; // Cache timeout in milliseconds
   private refreshInterval: NodeJS.Timeout;
@@ -210,7 +214,7 @@ export class TuyaAccessory {
     // Calculate exponential backoff delay
     const delay = Math.min(
       BASE_RETRY_DELAY * Math.pow(2, this.state.retryCount),
-      MAX_RETRY_DELAY
+      MAX_RETRY_DELAY,
     );
 
     this.retryTimeout = setTimeout(async () => {
@@ -250,7 +254,7 @@ export class TuyaAccessory {
       // Race between the operation and the timeout
       const result = await Promise.race([
         operation(),
-        timeoutPromise
+        timeoutPromise,
       ]);
       
       // Successful operation, reset timeout counter
@@ -291,14 +295,14 @@ export class TuyaAccessory {
 
       this.state = {
         ...this.state,
-        fanActive: parseDpsValue(dps, '51', this.state.fanActive),
-        fanSpeed: ((fanSpeed - 1) / 5) * 100,
-        lightOn: parseDpsValue(dps, '20', this.state.lightOn),
-        lightBrightness: ((brightness - 10) / 990) * 100,
+        fanActive: parseDpsValue(dps, '51', this.state.fanActive) as boolean,
+        fanSpeed: ((fanSpeed as number - 1) / 5) * 100,
+        lightOn: parseDpsValue(dps, '20', this.state.lightOn) as boolean,
+        lightBrightness: ((brightness as number - 10) / 990) * 100,
         lastUpdate: Date.now(),
         isOnline: true,
         retryCount: 0,
-        lastError: undefined
+        lastError: undefined,
       };
 
       this.handleDeviceConnected();
