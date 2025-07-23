@@ -9,7 +9,7 @@ const CONNECTION_ERROR_TYPES = [
 function isConnectionError(error) {
     return CONNECTION_ERROR_TYPES.some(type => error.message.toLowerCase().includes(type.toLowerCase()));
 }
-function isValidResponse(response) {
+function isValidResponse(response, isReconnecting = false) {
     try {
         if (!response || typeof response !== 'object') {
             return false;
@@ -19,7 +19,11 @@ function isValidResponse(response) {
         if (!dps || typeof dps !== 'object') {
             return false;
         }
-        // At least one expected property should be present and have the right type
+        // During reconnection, accept any dps object as valid
+        if (isReconnecting) {
+            return true;
+        }
+        // During normal operation, validate expected properties
         return ((('51' in dps && typeof dps['51'] === 'boolean') ||
             ('53' in dps && typeof dps['53'] === 'number') ||
             ('20' in dps && typeof dps['20'] === 'boolean') ||
@@ -356,7 +360,7 @@ export class TuyaAccessory {
             if (this.platform.config.debug) {
                 this.platform.log.debug(`Device ${this.accessory.displayName} response:`, JSON.stringify(response));
             }
-            if (!isValidResponse(response)) {
+            if (!isValidResponse(response, this.state.consecutiveTimeouts > 0)) {
                 this.platform.log.debug(`Device ${this.accessory.displayName} invalid response:`, `dps=${response && typeof response === 'object' ? JSON.stringify(response.dps) : 'none'}`);
                 // For initial connection, be more lenient
                 if (this.state.consecutiveTimeouts > 0) {

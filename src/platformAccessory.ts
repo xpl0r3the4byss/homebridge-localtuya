@@ -31,7 +31,7 @@ interface TuyaResponse {
   dps: Record<string, any>;
 }
 
-function isValidResponse(response: unknown): response is TuyaResponse {
+function isValidResponse(response: unknown, isReconnecting: boolean = false): response is TuyaResponse {
   try {
     if (!response || typeof response !== 'object') {
       return false;
@@ -44,7 +44,12 @@ function isValidResponse(response: unknown): response is TuyaResponse {
       return false;
     }
 
-    // At least one expected property should be present and have the right type
+    // During reconnection, accept any dps object as valid
+    if (isReconnecting) {
+      return true;
+    }
+
+    // During normal operation, validate expected properties
     return (
       (('51' in dps && typeof dps['51'] === 'boolean') ||
        ('53' in dps && typeof dps['53'] === 'number') ||
@@ -431,7 +436,7 @@ export class TuyaAccessory {
         this.platform.log.debug(`Device ${this.accessory.displayName} response:`, JSON.stringify(response));
       }
 
-      if (!isValidResponse(response)) {
+      if (!isValidResponse(response, this.state.consecutiveTimeouts > 0)) {
         this.platform.log.debug(`Device ${this.accessory.displayName} invalid response:`, 
           `dps=${response && typeof response === 'object' ? JSON.stringify((response as any).dps) : 'none'}`);
         
