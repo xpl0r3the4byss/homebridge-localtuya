@@ -9,6 +9,8 @@ const CONNECTION_ERROR_TYPES = [
 function isConnectionError(error) {
     return CONNECTION_ERROR_TYPES.some(type => error.message.toLowerCase().includes(type.toLowerCase()));
 }
+// Known initialization DPS codes that may appear during power-up
+const INIT_DPS = ['33', '35'];
 function isValidResponse(response, isReconnecting = false) {
     try {
         if (!response || typeof response !== 'object') {
@@ -19,8 +21,8 @@ function isValidResponse(response, isReconnecting = false) {
         if (!dps || typeof dps !== 'object') {
             return false;
         }
-        // During reconnection, accept any dps object as valid
-        if (isReconnecting) {
+        // During reconnection or if only initialization DPS codes are present, wait for next update
+        if (isReconnecting || Object.keys(dps).every(key => INIT_DPS.includes(key))) {
             return true;
         }
         // During normal operation, validate expected properties

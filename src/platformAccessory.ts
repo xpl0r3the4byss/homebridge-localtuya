@@ -31,6 +31,9 @@ interface TuyaResponse {
   dps: Record<string, any>;
 }
 
+// Known initialization DPS codes that may appear during power-up
+const INIT_DPS = ['33', '35'];
+
 function isValidResponse(response: unknown, isReconnecting: boolean = false): response is TuyaResponse {
   try {
     if (!response || typeof response !== 'object') {
@@ -44,8 +47,8 @@ function isValidResponse(response: unknown, isReconnecting: boolean = false): re
       return false;
     }
 
-    // During reconnection, accept any dps object as valid
-    if (isReconnecting) {
+    // During reconnection or if only initialization DPS codes are present, wait for next update
+    if (isReconnecting || Object.keys(dps).every(key => INIT_DPS.includes(key))) {
       return true;
     }
 
