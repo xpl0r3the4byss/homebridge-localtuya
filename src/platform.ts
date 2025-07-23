@@ -73,19 +73,26 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
     
     // Read devices.json if it exists
     try {
-      // Using require since this is a runtime configuration file
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const devicesJson = require('../../devices.json');
-      if (Array.isArray(devicesJson)) {
-        for (const device of devicesJson) {
-          if (!configDevices.find((d: { id: string }) => d.id === device.id)) {
-            configDevices.push({
-              name: device.name,
-              id: device.id,
-              key: device.key,
-              ip: device.ip,
-              type: 'fanLight', // Default type for our fan/light combo
-            });
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      // Get directory of current module
+      const moduleDir = path.dirname(new URL(import.meta.url).pathname);
+      const devicesPath = path.resolve(moduleDir, '../../devices.json');
+      
+      if (fs.existsSync(devicesPath)) {
+        const devicesJson = JSON.parse(fs.readFileSync(devicesPath, 'utf8'));
+        if (Array.isArray(devicesJson)) {
+          for (const device of devicesJson) {
+            if (!configDevices.find((d: { id: string }) => d.id === device.id)) {
+              configDevices.push({
+                name: device.name,
+                id: device.id,
+                key: device.key,
+                ip: device.ip,
+                type: 'fanLight', // Default type for our fan/light combo
+              });
+            }
           }
         }
       }

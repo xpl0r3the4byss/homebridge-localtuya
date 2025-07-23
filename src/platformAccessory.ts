@@ -131,9 +131,11 @@ export class TuyaAccessory {
     this.refreshInterval = setInterval(this.refreshState.bind(this), REFRESH_INTERVAL);
 
     // Set up status reporting characteristic
-    this.accessory.getService(this.platform.Service.AccessoryInformation)!
-      .addCharacteristic(this.platform.Characteristic.StatusActive)
-      .onGet(() => this.state.isOnline);
+    const infoService = this.accessory.getService(this.platform.Service.AccessoryInformation)!;
+    if (!infoService.testCharacteristic(this.platform.Characteristic.StatusActive)) {
+      infoService.addCharacteristic(this.platform.Characteristic.StatusActive);
+    }
+    infoService.updateCharacteristic(this.platform.Characteristic.StatusActive, this.state.isOnline);
 
     // Set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
