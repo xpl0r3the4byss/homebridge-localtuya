@@ -1,4 +1,32 @@
 import TuyAPI from 'tuyapi';
+function isValidResponse(response) {
+    if (!response || typeof response !== 'object') {
+        return false;
+    }
+    const dps = response.dps;
+    if (!dps || typeof dps !== 'object') {
+        return false;
+    }
+    // Check if any of our expected properties exist
+    return '51' in dps || '53' in dps || '20' in dps || '22' in dps;
+}
+function parseDpsValue(dps, key, defaultValue) {
+    if (!(key in dps)) {
+        return defaultValue;
+    }
+    const value = dps[key];
+    switch (key) {
+        case '51': // Fan active
+        case '20': // Light on
+            return value === true;
+        case '53': // Fan speed
+            return typeof value === 'number' ? Math.max(1, Math.min(6, value)) : 1;
+        case '22': // Light brightness
+            return typeof value === 'number' ? Math.max(10, Math.min(1000, value)) : 10;
+        default:
+            return defaultValue;
+    }
+}
 const MAX_RETRIES = 3;
 const BASE_RETRY_DELAY = 5000; // 5 seconds initial delay
 const REFRESH_INTERVAL = 10000; // 10 seconds between refreshes
@@ -186,7 +214,7 @@ export class TuyaAccessory {
         if (this.platform.config.debug || (!error.message.includes('EHOSTUNREACH') && !error.message.includes('ETIMEDOUT'))) {
             this.platform.log.error(`Device ${this.accessory.displayName} error:`, error.message);
         }
-        if (error.message.includes('EHOSTUNREACH') || error.message.includes('ETIMEDOUT')) {
+        if (error.message.includes('EHOSTUNREACH') || error.message.includes('ETIMEDOUT') || error.message.includes('ECONNREFUSED')) {
             this.handleDeviceDisconnected();
         }
     }
@@ -274,17 +302,6 @@ export class TuyaAccessory {
             this.handleDeviceError(error);
             return defaultValue;
         }
-        if (!this.state.isOnline) {
-            throw new this.platform.api.hap.HapStatusError(-70402 /* this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE */);
-        }
-        try {
-            return await operation();
-        }
-        catch (error) {
-            this.platform.log.error('Device operation failed:', error);
-            this.handleDeviceError(error);
-            throw new this.platform.api.hap.HapStatusError(-70402 /* this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE */);
-        }
     }
     async refreshState() {
         // Skip refresh if device is offline and max retries reached
@@ -296,16 +313,27 @@ export class TuyaAccessory {
             return;
         }
         try {
-            const status = await this.device.get({ schema: true });
+            const response = await this.device.get({ schema: true });
+            if (!isValidResponse(response)) {
+                if (this.platform.config.debug) {
+                    this.platform.log.debug(`Invalid device response: ${JSON.stringify(response)}`);
+                }
+                throw new Error('Invalid device response format');
+            }
+            const dps = response.dps;
+            // Safely parse each value with validation
+            const fanSpeed = parseDpsValue(dps, '53', this.state.fanSpeed === 0 ? 1 : Math.round((this.state.fanSpeed / 100) * 5) + 1);
+            const brightness = parseDpsValue(dps, '22', this.state.lightBrightness === 0 ? 10 : Math.round((this.state.lightBrightness / 100) * 990) + 10);
             this.state = {
                 ...this.state,
-                fanActive: status.dps['51'] === true,
-                fanSpeed: ((status.dps['53'] - 1) / 5) * 100,
-                lightOn: status.dps['20'] === true,
-                lightBrightness: ((status.dps['22'] - 10) / 990) * 100,
+                fanActive: parseDpsValue(dps, '51', this.state.fanActive),
+                fanSpeed: ((fanSpeed - 1) / 5) * 100,
+                lightOn: parseDpsValue(dps, '20', this.state.lightOn),
+                lightBrightness: ((brightness - 10) / 990) * 100,
                 lastUpdate: Date.now(),
                 isOnline: true,
-                retryCount: 0
+                retryCount: 0,
+                lastError: undefined
             };
             this.handleDeviceConnected();
             if (this.platform.config.debug) {
@@ -313,7 +341,9 @@ export class TuyaAccessory {
             }
         }
         catch (error) {
-            this.handleDeviceError(error);
+            const err = error instanceof Error ? error : new Error('Unknown error');
+            this.state.lastError = err.message;
+            this.handleDeviceError(err);
         }
     }
     // Cleanup method
