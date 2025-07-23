@@ -3,6 +3,7 @@ const MAX_RETRIES = 3;
 const BASE_RETRY_DELAY = 5000; // 5 seconds initial delay
 const REFRESH_INTERVAL = 10000; // 10 seconds between refreshes
 const MAX_RETRY_DELAY = 300000; // 5 minutes maximum retry delay
+const OPERATION_TIMEOUT = 1000; // 1 second timeout for device operations
 export class TuyaAccessory {
     platform;
     accessory;
@@ -73,89 +74,113 @@ export class TuyaAccessory {
     }
     // Fan control methods
     async setFanActive(value) {
-        await this.safeDeviceOperation(async () => {
-            await this.device.set({ dps: 51, set: value === 1 }); // Toggle fan
+        try {
+            await this.safeDeviceOperation(async () => {
+                await this.device.set({ dps: 51, set: value === 1 }); // Toggle fan
+                this.state.fanActive = value === 1;
+                this.state.lastUpdate = Date.now();
+                this.platform.log.debug('Set Fan Active ->', value);
+            }, undefined);
+        }
+        catch (error) {
+            // Update state anyway to maintain consistency with HomeKit
             this.state.fanActive = value === 1;
-            this.state.lastUpdate = Date.now();
-            this.platform.log.debug('Set Fan Active ->', value);
-        }, undefined);
+            throw error;
+        }
     }
     async getFanActive() {
-        if (!this.state.isOnline) {
+        // Always check cache first
+        if (this.isCacheValid() || !this.state.isOnline) {
             return this.state.fanActive ? 1 : 0;
         }
-        if (this.isCacheValid()) {
-            return this.state.fanActive ? 1 : 0;
-        }
-        return await this.safeDeviceOperation(async () => {
+        const result = await this.safeDeviceOperation(async () => {
             await this.refreshState();
             return this.state.fanActive ? 1 : 0;
-        }, 0);
+        }, this.state.fanActive ? 1 : 0);
+        return result;
     }
     async setFanSpeed(value) {
-        await this.safeDeviceOperation(async () => {
-            // Convert 0-100 to 1-6 range
-            const speed = Math.round((value / 100) * 5) + 1;
-            await this.device.set({ dps: 53, set: speed }); // Set fan speed
+        try {
+            await this.safeDeviceOperation(async () => {
+                // Convert 0-100 to 1-6 range
+                const speed = Math.round((value / 100) * 5) + 1;
+                await this.device.set({ dps: 53, set: speed }); // Set fan speed
+                this.state.fanSpeed = value;
+                this.state.lastUpdate = Date.now();
+                this.platform.log.debug('Set Fan Speed ->', value, 'Tuya Speed ->', speed);
+            }, undefined);
+        }
+        catch (error) {
+            // Update state anyway to maintain consistency with HomeKit
             this.state.fanSpeed = value;
-            this.state.lastUpdate = Date.now();
-            this.platform.log.debug('Set Fan Speed ->', value, 'Tuya Speed ->', speed);
-        }, undefined);
+            throw error;
+        }
     }
     async getFanSpeed() {
-        if (!this.state.isOnline) {
+        // Always check cache first
+        if (this.isCacheValid() || !this.state.isOnline) {
             return this.state.fanSpeed;
         }
-        if (this.isCacheValid()) {
-            return this.state.fanSpeed;
-        }
-        return await this.safeDeviceOperation(async () => {
+        const result = await this.safeDeviceOperation(async () => {
             await this.refreshState();
             return this.state.fanSpeed;
-        }, 0);
+        }, this.state.fanSpeed);
+        return result;
     }
     // Light control methods
     async setLightOn(value) {
-        await this.safeDeviceOperation(async () => {
-            await this.device.set({ dps: 20, set: value }); // Toggle light
+        try {
+            await this.safeDeviceOperation(async () => {
+                await this.device.set({ dps: 20, set: value }); // Toggle light
+                this.state.lightOn = value;
+                this.state.lastUpdate = Date.now();
+                this.platform.log.debug('Set Light On ->', value);
+            }, undefined);
+        }
+        catch (error) {
+            // Update state anyway to maintain consistency with HomeKit
             this.state.lightOn = value;
-            this.state.lastUpdate = Date.now();
-            this.platform.log.debug('Set Light On ->', value);
-        }, undefined);
+            throw error;
+        }
     }
     async getLightOn() {
-        if (!this.state.isOnline) {
+        // Always check cache first
+        if (this.isCacheValid() || !this.state.isOnline) {
             return this.state.lightOn;
         }
-        if (this.isCacheValid()) {
-            return this.state.lightOn;
-        }
-        return await this.safeDeviceOperation(async () => {
+        const result = await this.safeDeviceOperation(async () => {
             await this.refreshState();
             return this.state.lightOn;
-        }, false);
+        }, this.state.lightOn);
+        return result;
     }
     async setLightBrightness(value) {
-        await this.safeDeviceOperation(async () => {
-            // Convert 0-100 to 10-1000 range
-            const brightness = Math.round((value / 100) * 990) + 10;
-            await this.device.set({ dps: 22, set: brightness }); // Set brightness
+        try {
+            await this.safeDeviceOperation(async () => {
+                // Convert 0-100 to 10-1000 range
+                const brightness = Math.round((value / 100) * 990) + 10;
+                await this.device.set({ dps: 22, set: brightness }); // Set brightness
+                this.state.lightBrightness = value;
+                this.state.lastUpdate = Date.now();
+                this.platform.log.debug('Set Light Brightness ->', value, 'Tuya Brightness ->', brightness);
+            }, undefined);
+        }
+        catch (error) {
+            // Update state anyway to maintain consistency with HomeKit
             this.state.lightBrightness = value;
-            this.state.lastUpdate = Date.now();
-            this.platform.log.debug('Set Light Brightness ->', value, 'Tuya Brightness ->', brightness);
-        }, undefined);
+            throw error;
+        }
     }
     async getLightBrightness() {
-        if (!this.state.isOnline) {
+        // Always check cache first
+        if (this.isCacheValid() || !this.state.isOnline) {
             return this.state.lightBrightness;
         }
-        if (this.isCacheValid()) {
-            return this.state.lightBrightness;
-        }
-        return await this.safeDeviceOperation(async () => {
+        const result = await this.safeDeviceOperation(async () => {
             await this.refreshState();
             return this.state.lightBrightness;
-        }, 0);
+        }, this.state.lightBrightness);
+        return result;
     }
     handleDeviceError(error) {
         if (this.platform.config.debug || (!error.message.includes('EHOSTUNREACH') && !error.message.includes('ETIMEDOUT'))) {
@@ -227,6 +252,28 @@ export class TuyaAccessory {
         }, delay);
     }
     async safeDeviceOperation(operation, defaultValue) {
+        // Create a timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error('Operation timed out'));
+            }, OPERATION_TIMEOUT);
+        });
+        // If device is offline, return default value immediately
+        if (!this.state.isOnline) {
+            return defaultValue;
+        }
+        try {
+            // Race between the operation and the timeout
+            return await Promise.race([
+                operation(),
+                timeoutPromise
+            ]);
+        }
+        catch (error) {
+            this.platform.log.debug(`Operation timed out or failed: ${error}`);
+            this.handleDeviceError(error);
+            return defaultValue;
+        }
         if (!this.state.isOnline) {
             throw new this.platform.api.hap.HapStatusError(-70402 /* this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE */);
         }
