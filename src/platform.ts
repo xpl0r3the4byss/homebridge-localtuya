@@ -16,8 +16,9 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service;
   public readonly Characteristic: typeof Characteristic;
 
-  // this is used to track restored cached accessories
+  // this is used to track restored cached accessories and their handlers
   public readonly accessories: Map<string, PlatformAccessory> = new Map();
+  private readonly accessoryHandlers: Map<string, TuyaAccessory> = new Map();
   public readonly discoveredCacheUUIDs: string[] = [];
 
   // This is only required when using Custom Services and Characteristics not support by HomeKit
@@ -114,7 +115,8 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
 
         // create the accessory handler for the restored accessory
         // this is imported from `platformAccessory.ts`
-        new TuyaAccessory(this, existingAccessory);
+        const handler = new TuyaAccessory(this, existingAccessory);
+        this.accessoryHandlers.set(uuid, handler);
 
         // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, e.g.:
         // remove platform accessories when no longer present
@@ -133,7 +135,8 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
 
         // create the accessory handler for the newly create accessory
         // this is imported from `platformAccessory.ts`
-        new TuyaAccessory(this, accessory);
+        const handler = new TuyaAccessory(this, accessory);
+        this.accessoryHandlers.set(uuid, handler);
 
         // link the accessory to your platform
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
@@ -149,6 +152,12 @@ export class LocalTuyaPlatform implements DynamicPlatformPlugin {
     for (const [uuid, accessory] of this.accessories) {
       if (!this.discoveredCacheUUIDs.includes(uuid)) {
         this.log.info('Removing existing accessory from cache:', accessory.displayName);
+        // Clean up the accessory handler
+        const handler = this.accessoryHandlers.get(uuid);
+        if (handler) {
+          handler.destroy();
+          this.accessoryHandlers.delete(uuid);
+        }
         this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }
     }

@@ -26,3 +26,4 @@ If asked to work on this project:
 2. Do NOT attempt to "fix" TypeScript issues unless specifically requested
 3. Do NOT modify any working functionality unless specifically requested
 4. If changes are needed, create a new branch from this working version
+5. NEVER add the dist directory to .gitignore - compiled files MUST be committed
