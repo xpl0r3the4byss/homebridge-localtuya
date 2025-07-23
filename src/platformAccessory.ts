@@ -53,15 +53,15 @@ function parseDpsValue(dps: Record<string, unknown>, key: string, defaultValue: 
 
   const value = dps[key];
   switch (key) {
-    case '51': // Fan active
-    case '20': // Light on
-      return value === true;
-    case '53': // Fan speed
-      return typeof value === 'number' ? Math.max(1, Math.min(6, value)) : 1;
-    case '22': // Light brightness
-      return typeof value === 'number' ? Math.max(10, Math.min(1000, value)) : 10;
-    default:
-      return defaultValue;
+  case '51': // Fan active
+  case '20': // Light on
+    return value === true;
+  case '53': // Fan speed
+    return typeof value === 'number' ? Math.max(1, Math.min(6, value)) : 1;
+  case '22': // Light brightness
+    return typeof value === 'number' ? Math.max(10, Math.min(1000, value)) : 10;
+  default:
+    return defaultValue;
   }
 }
 
