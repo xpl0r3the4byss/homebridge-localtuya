@@ -30,6 +30,17 @@ If asked to work on this project:
 
 ## Version Management
 
+### Publishing to npm
+Always use the npm access token for publishing:
+```bash
+# First configure npm with your access token
+npm config set //registry.npmjs.org/:_authToken=<your-npm-token>
+
+# Then publish with beta tag
+npm publish --tag beta
+```
+
+### Version Scripts
 Use these npm scripts to manage versions:
 
 ```bash
