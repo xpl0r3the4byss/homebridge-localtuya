@@ -1,6 +1,8 @@
 import TuyAPI from 'tuyapi';
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 5000; // 5 seconds between retries
+const BASE_RETRY_DELAY = 5000; // 5 seconds initial delay
+const REFRESH_INTERVAL = 10000; // 10 seconds between refreshes
+const MAX_RETRY_DELAY = 300000; // 5 minutes maximum retry delay
 export class TuyaAccessory {
     platform;
     accessory;
@@ -35,7 +37,7 @@ export class TuyaAccessory {
         this.device.on('connected', this.handleDeviceConnected.bind(this));
         this.device.on('disconnected', this.handleDeviceDisconnected.bind(this));
         // Start periodic state refresh
-        this.refreshInterval = setInterval(this.refreshState.bind(this), 1000);
+        this.refreshInterval = setInterval(this.refreshState.bind(this), REFRESH_INTERVAL);
         // Set up status reporting characteristic
         this.accessory.getService(this.platform.Service.AccessoryInformation)
             .addCharacteristic(this.platform.Characteristic.StatusActive)
@@ -156,7 +158,9 @@ export class TuyaAccessory {
         }, 0);
     }
     handleDeviceError(error) {
-        this.platform.log.error(`Device ${this.accessory.displayName} error:`, error.message);
+        if (this.platform.config.debug || (!error.message.includes('EHOSTUNREACH') && !error.message.includes('ETIMEDOUT'))) {
+            this.platform.log.error(`Device ${this.accessory.displayName} error:`, error.message);
+        }
         if (error.message.includes('EHOSTUNREACH') || error.message.includes('ETIMEDOUT')) {
             this.handleDeviceDisconnected();
         }
@@ -190,25 +194,37 @@ export class TuyaAccessory {
     }
     scheduleRetry() {
         if (this.state.retryCount >= MAX_RETRIES) {
-            this.platform.log.error(`Device ${this.accessory.displayName} failed to reconnect after ${MAX_RETRIES} attempts`);
+            this.platform.log.warn(`Device ${this.accessory.displayName} offline - will retry in 5 minutes`);
+            // Reset retry count and schedule a retry with maximum delay
+            this.state.retryCount = 0;
+            if (this.retryTimeout) {
+                clearTimeout(this.retryTimeout);
+            }
+            this.retryTimeout = setTimeout(() => this.refreshState(), MAX_RETRY_DELAY);
             return;
         }
         if (this.retryTimeout) {
             clearTimeout(this.retryTimeout);
         }
+        // Calculate exponential backoff delay
+        const delay = Math.min(BASE_RETRY_DELAY * Math.pow(2, this.state.retryCount), MAX_RETRY_DELAY);
         this.retryTimeout = setTimeout(async () => {
             try {
                 this.state.retryCount++;
-                this.platform.log.debug(`Attempting to reconnect to ${this.accessory.displayName} (attempt ${this.state.retryCount})`);
+                if (this.platform.config.debug) {
+                    this.platform.log.debug(`Attempting to reconnect to ${this.accessory.displayName} (attempt ${this.state.retryCount})`);
+                }
                 await this.refreshState();
             }
             catch (error) {
-                this.platform.log.error(`Retry attempt ${this.state.retryCount} failed:`, error);
+                if (this.platform.config.debug) {
+                    this.platform.log.debug(`Retry attempt ${this.state.retryCount} failed:`, error);
+                }
                 if (this.state.retryCount < MAX_RETRIES) {
                     this.scheduleRetry();
                 }
             }
-        }, RETRY_DELAY);
+        }, delay);
     }
     async safeDeviceOperation(operation, defaultValue) {
         if (!this.state.isOnline) {
@@ -224,7 +240,12 @@ export class TuyaAccessory {
         }
     }
     async refreshState() {
+        // Skip refresh if device is offline and max retries reached
         if (!this.state.isOnline && this.state.retryCount >= MAX_RETRIES) {
+            return;
+        }
+        // Skip refresh if cache is still valid
+        if (this.isCacheValid()) {
             return;
         }
         try {
@@ -240,7 +261,9 @@ export class TuyaAccessory {
                 retryCount: 0
             };
             this.handleDeviceConnected();
-            this.platform.log.debug('State refreshed:', this.state);
+            if (this.platform.config.debug) {
+                this.platform.log.debug('State refreshed:', this.state);
+            }
         }
         catch (error) {
             this.handleDeviceError(error);
