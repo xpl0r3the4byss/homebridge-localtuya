@@ -1,4 +1,14 @@
 import TuyAPI from 'tuyapi';
+const CONNECTION_ERROR_TYPES = [
+    'EHOSTUNREACH',
+    'ETIMEDOUT',
+    'ECONNREFUSED',
+    'connection timed out',
+    'Operation timed out'
+];
+function isConnectionError(error) {
+    return CONNECTION_ERROR_TYPES.some(type => error.message.toLowerCase().includes(type.toLowerCase()));
+}
 function isValidResponse(response) {
     if (!response || typeof response !== 'object') {
         return false;
@@ -45,7 +55,9 @@ export class TuyaAccessory {
         lightBrightness: 0,
         lastUpdate: 0,
         isOnline: true,
-        retryCount: 0
+        retryCount: 0,
+        lastConnectionAttempt: 0,
+        consecutiveTimeouts: 0
     };
     cacheTimeout = 500; // Cache timeout in milliseconds
     refreshInterval;
@@ -211,18 +223,32 @@ export class TuyaAccessory {
         return result;
     }
     handleDeviceError(error) {
-        if (this.platform.config.debug || (!error.message.includes('EHOSTUNREACH') && !error.message.includes('ETIMEDOUT'))) {
-            this.platform.log.error(`Device ${this.accessory.displayName} error:`, error.message);
+        const now = Date.now();
+        const isConnectionErr = isConnectionError(error);
+        if (isConnectionErr) {
+            this.state.consecutiveTimeouts++;
+            // Only log connection errors if we haven't seen one recently or if in debug mode
+            if (this.platform.config.debug || now - this.state.lastConnectionAttempt > 30000) {
+                this.platform.log.debug(`Device ${this.accessory.displayName} connection error (attempt ${this.state.consecutiveTimeouts}):`, error.message);
+            }
+            this.state.lastConnectionAttempt = now;
+            // If we've had multiple timeouts, mark device as offline
+            if (this.state.consecutiveTimeouts >= 3) {
+                this.handleDeviceDisconnected();
+            }
         }
-        if (error.message.includes('EHOSTUNREACH') || error.message.includes('ETIMEDOUT') || error.message.includes('ECONNREFUSED')) {
-            this.handleDeviceDisconnected();
+        else {
+            // For non-connection errors, always log
+            this.platform.log.error(`Device ${this.accessory.displayName} error:`, error.message);
         }
     }
     handleDeviceConnected() {
-        if (!this.state.isOnline) {
+        if (!this.state.isOnline || this.state.consecutiveTimeouts > 0) {
             this.platform.log.info(`Device ${this.accessory.displayName} is back online`);
             this.state.isOnline = true;
             this.state.retryCount = 0;
+            this.state.consecutiveTimeouts = 0;
+            this.state.lastConnectionAttempt = 0;
             // Update HomeKit status
             this.accessory.getService(this.platform.Service.AccessoryInformation)
                 .updateCharacteristic(this.platform.Characteristic.StatusActive, true);
@@ -286,19 +312,23 @@ export class TuyaAccessory {
                 reject(new Error('Operation timed out'));
             }, OPERATION_TIMEOUT);
         });
-        // If device is offline, return default value immediately
-        if (!this.state.isOnline) {
+        // If device is offline or has recent timeouts, return default value immediately
+        if (!this.state.isOnline ||
+            (this.state.consecutiveTimeouts >= 3 &&
+                Date.now() - this.state.lastConnectionAttempt < 5000)) {
             return defaultValue;
         }
         try {
             // Race between the operation and the timeout
-            return await Promise.race([
+            const result = await Promise.race([
                 operation(),
                 timeoutPromise
             ]);
+            // Successful operation, reset timeout counter
+            this.state.consecutiveTimeouts = 0;
+            return result;
         }
         catch (error) {
-            this.platform.log.debug(`Operation timed out or failed: ${error}`);
             this.handleDeviceError(error);
             return defaultValue;
         }
