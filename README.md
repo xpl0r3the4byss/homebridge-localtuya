@@ -1,215 +1,117 @@
-<p align="center">
+# homebridge-localtuya
 
-<img src="https://github.com/homebridge/branding/raw/latest/logos/homebridge-wordmark-logo-vertical.png" width="150">
+A Homebridge plugin for controlling Tuya devices locally without cloud dependencies. Currently optimized for fan/light combination devices, specifically Designers Fountain ceiling fans.
 
-</p>
+## Features
 
-<span align="center">
+- Local control of Tuya devices without cloud dependency
+- Real-time status updates
+- Support for fan and light combination devices
+- HomeKit integration for:
+  - Fan on/off state and speed control
+  - Light on/off state and brightness control
 
-# Homebridge Platform Plugin Template
+## Prerequisites
 
-</span>
+1. Homebridge installed and running
+2. Tuya device(s) set up and connected to your local network
+3. Device local keys (see [Obtaining Device Keys](#obtaining-device-keys))
 
-> [!IMPORTANT]
-> **Homebridge v2.0 Information**
->
-> This template currently has a
-> - `package.json -> engines.homebridge` value of `"^1.8.0 || ^2.0.0-beta.0"`
-> - `package.json -> devDependencies.homebridge` value of `"^2.0.0-beta.0"`
->
-> This is to ensure that your plugin will build and run on both Homebridge v1 and v2.
->
-> Once Homebridge v2.0 has been released, you can remove the `-beta.0` in both places.
+## Installation
 
----
-
-This is a template Homebridge dynamic platform plugin and can be used as a base to help you get started developing your own plugin.
-
-This template should be used in conjunction with the [developer documentation](https://developers.homebridge.io/). A full list of all supported service types, and their characteristics is available on this site.
-
-### Clone As Template
-
-Click the link below to create a new GitHub Repository using this template, or click the *Use This Template* button above.
-
-<span align="center">
-
-### [Create New Repository From Template](https://github.com/homebridge/homebridge-plugin-template/generate)
-
-</span>
-
-### Setup Development Environment
-
-To develop Homebridge plugins you must have Node.js 18 or later installed, and a modern code editor such as [VS Code](https://code.visualstudio.com/). This plugin template uses [TypeScript](https://www.typescriptlang.org/) to make development easier and comes with pre-configured settings for [VS Code](https://code.visualstudio.com/) and ESLint. If you are using VS Code install these extensions:
-
-- [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
-
-### Install Development Dependencies
-
-Using a terminal, navigate to the project folder and run this command to install the development dependencies:
-
-```shell
-npm install
+```bash
+npm install -g homebridge-localtuya@beta
 ```
 
-### Update package.json
+## Configuration
 
-Open the [`package.json`](./package.json) and change the following attributes:
+Configure through Homebridge UI or by editing `config.json`:
 
-- `name` - this should be prefixed with `homebridge-` or `@username/homebridge-`, is case-sensitive, and contains no spaces nor special characters apart from a dash `-`
-- `displayName` - this is the "nice" name displayed in the Homebridge UI
-- `homepage` - link to your GitHub repo's `README.md`
-- `repository.url` - link to your GitHub repo
-- `bugs.url` - link to your GitHub repo issues page
-
-When you are ready to publish the plugin you should set `private` to false, or remove the attribute entirely.
-
-### Update Plugin Defaults
-
-Open the [`src/settings.ts`](./src/settings.ts) file and change the default values:
-
-- `PLATFORM_NAME` - Set this to be the name of your platform. This is the name of the platform that users will use to register the plugin in the Homebridge `config.json`.
-- `PLUGIN_NAME` - Set this to be the same name you set in the [`package.json`](./package.json) file.
-
-Open the [`config.schema.json`](./config.schema.json) file and change the following attribute:
-
-- `pluginAlias` - set this to match the `PLATFORM_NAME` you defined in the previous step.
-
-See the [Homebridge API docs](https://developers.homebridge.io/#/config-schema#default-values) for more details on the other attributes you can set in the `config.schema.json` file.
-
-### Build Plugin
-
-TypeScript needs to be compiled into JavaScript before it can run. The following command will compile the contents of your [`src`](./src) directory and put the resulting code into the `dist` folder.
-
-```shell
-npm run build
-```
-
-### Link To Homebridge
-
-Run this command so your global installation of Homebridge can discover the plugin in your development environment:
-
-```shell
-npm link
-```
-
-You can now start Homebridge, use the `-D` flag, so you can see debug log messages in your plugin:
-
-```shell
-homebridge -D
-```
-
-### Watch For Changes and Build Automatically
-
-If you want to have your code compile automatically as you make changes, and restart Homebridge automatically between changes, you first need to add your plugin as a platform in `./test/hbConfig/config.json`:
-```
+```json
 {
-...
-    "platforms": [
+  "platforms": [
+    {
+      "platform": "LocalTuya",
+      "devices": [
         {
-            "name": "Config",
-            "port": 8581,
-            "platform": "config"
-        },
-        {
-            "name": "<PLUGIN_NAME>",
-            //... any other options, as listed in config.schema.json ...
-            "platform": "<PLATFORM_NAME>"
+          "name": "Living Room Fan",
+          "id": "device_id",
+          "key": "local_key",
+          "ip": "device_ip",
+          "type": "fanLight"
         }
-    ]
+      ]
+    }
+  ]
 }
 ```
 
-and then you can run:
+### Required Device Parameters
 
-```shell
-npm run watch
-```
+- `name`: Display name in HomeKit
+- `id`: Device ID from Tuya
+- `key`: Local encryption key
+- `ip`: Device's local IP address
+- `type`: Device type (currently only "fanLight" supported)
 
-This will launch an instance of Homebridge in debug mode which will restart every time you make a change to the source code. It will load the config stored in the default location under `~/.homebridge`. You may need to stop other running instances of Homebridge while using this command to prevent conflicts. You can adjust the Homebridge startup command in the [`nodemon.json`](./nodemon.json) file.
+## Obtaining Device Keys
 
-### Customise Plugin
+### Method 1: Smart Life App (Recommended)
 
-You can now start customising the plugin template to suit your requirements.
+1. Install Smart Life app and add your devices
+2. Use third-party tools to extract local keys from the app
+3. Note down device IDs and local keys
 
-- [`src/platform.ts`](./src/platform.ts) - this is where your device setup and discovery should go.
-- [`src/platformAccessory.ts`](./src/platformAccessory.ts) - this is where your accessory control logic should go, you can rename or create multiple instances of this file for each accessory type you need to implement as part of your platform plugin. You can refer to the [developer documentation](https://developers.homebridge.io/) to see what characteristics you need to implement for each service type.
-- [`config.schema.json`](./config.schema.json) - update the config schema to match the config you expect from the user. See the [Plugin Config Schema Documentation](https://developers.homebridge.io/#/config-schema).
+### Method 2: IoT Platform
 
-### Versioning Your Plugin
+1. Create Account:
+   - Visit [iot.tuya.com](https://iot.tuya.com)
+   - Register for a developer account
+   - Select your data center based on location
 
-Given a version number `MAJOR`.`MINOR`.`PATCH`, such as `1.4.3`, increment the:
+2. Create Cloud Project:
+   - Go to Cloud > Development
+   - Create new project
+   - Select "Smart Home" industry and development method
 
-1. **MAJOR** version when you make breaking changes to your plugin,
-2. **MINOR** version when you add functionality in a backwards compatible manner, and
-3. **PATCH** version when you make backwards compatible bug fixes.
+3. Configure API Access:
+   - Enable required services:
+     - Industry Basic Service
+     - Smart Home Basic Service
+     - Device Status Notification APIs
+   - Note your Access ID and Secret
 
-You can use the `npm version` command to help you with this:
+4. Link Devices:
+   - Navigate to Cloud > Your Project > Devices
+   - Click "Link Tuya App Account"
+   - Use Smart Life app to scan QR code
+   - Authorize connection
 
-```shell
-# major update / breaking changes
-npm version major
+5. Get Device Information:
+   - Device IDs and local keys will be visible in the linked devices section
+   - Note: IoT platform access to local keys is limited and may not work for all devices
 
-# minor update / new features
-npm version update
+## Supported Devices
 
-# patch / bugfixes
-npm version patch
-```
+Currently optimized for:
+- Fan/light combination devices (Designers Fountain ceiling fans)
+- Devices using Tuya protocol version 3.3
 
-### Publish Package
+## Troubleshooting
 
-When you are ready to publish your plugin to [npm](https://www.npmjs.com/), make sure you have removed the `private` attribute from the [`package.json`](./package.json) file then run:
+1. Ensure device is connected to local network
+2. Verify device IP address is correct and static
+3. Confirm local key is correct
+4. Check device is using compatible protocol version (3.3)
 
-```shell
-npm publish
-```
+## Contributing
 
-If you are publishing a scoped plugin, i.e. `@username/homebridge-xxx` you will need to add `--access=public` to command the first time you publish.
+This is a beta version focused on fan/light combination devices. Please report issues on GitHub.
 
-#### Publishing Beta Versions
+## License
 
-You can publish *beta* versions of your plugin for other users to test before you release it to everyone.
+MIT
 
-```shell
-# create a new pre-release version (eg. 2.1.0-beta.1)
-npm version prepatch --preid beta
+---
 
-# publish to @beta
-npm publish --tag beta
-```
-
-Users can then install the  *beta* version by appending `@beta` to the install command, for example:
-
-```shell
-sudo npm install -g homebridge-example-plugin@beta
-```
-
-### Best Practices
-
-Consider creating your plugin with the [Homebridge Verified](https://github.com/homebridge/verified) criteria in mind. This will help you to create a plugin that is easy to use and works well with Homebridge.
-You can then submit your plugin to the Homebridge Verified list for review.
-The most up-to-date criteria can be found [here](https://github.com/homebridge/verified#requirements).
-For reference, the current criteria are:
-
-- **General**
-  - The plugin must be of type [dynamic platform](https://developers.homebridge.io/#/#dynamic-platform-template).
-  - The plugin must not offer the same nor less functionality than that of any existing **verified** plugin.
-- **Repo**
-  - The plugin must be published to NPM and the source code available on a GitHub repository, with issues enabled.
-  - A GitHub release should be created for every new version of your plugin, with release notes.
-- **Environment**
-  - The plugin must run on all [supported LTS versions of Node.js](https://github.com/homebridge/homebridge/wiki/How-To-Update-Node.js), at the time of writing this is Node v18, v20 and v22.
-  - The plugin must successfully install and not start unless it is configured.
-  - The plugin must not execute post-install scripts that modify the users' system in any way.
-  - The plugin must not require the user to run Homebridge in a TTY or with non-standard startup parameters, even for initial configuration.
-- **Codebase**
-  - The plugin must implement the [Homebridge Plugin Settings GUI](https://developers.homebridge.io/#/config-schema).
-  - The plugin must not contain any analytics or calls that enable you to track the user.
-  - If the plugin needs to write files to disk (cache, keys, etc.), it must store them inside the Homebridge storage directory.
-  - The plugin must not throw unhandled exceptions, the plugin must catch and log its own errors.
-
-### Useful Links
-
-Note these links are here for help but are not supported/verified by the Homebridge team
-
-- [Custom Characteristics](https://github.com/homebridge/homebridge-plugin-template/issues/20)
+For more information about Homebridge, visit the [Homebridge documentation](https://developers.homebridge.io/).
