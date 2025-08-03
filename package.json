@@ -5,7 +5,11 @@
   "version": "0.0.2-beta.1",
   "private": false,
   "description": "Homebridge plugin for local control of Tuya devices",
-  "author": "xpl0r3the4byss",
+  "author": {
+    "name": "xpl0r3the4byss",
+    "email": "brevig@fjoaempire.com",
+    "url": "https://github.com/xpl0r3the4byss"
+  },
   "license": "Apache-2.0",
   "homepage": "https://github.com/xpl0r3the4byss/homebridge-localtuya#readme",
   "repository": {
